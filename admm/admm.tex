@@ -1,0 +1,620 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[english]{babel}
+\usepackage{csquotes}             % For biblatex
+\usepackage{lmodern}             
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{xcolor}
+\usepackage{amsmath,amsfonts,amssymb,amsthm}
+\usepackage{commath}
+\usepackage{mathtools}
+\usepackage{thmtools}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{epsfig}
+\usepackage{auto-pst-pdf}
+\usepackage{pstricks}
+\usepackage{pst-node}
+\usepackage{pst-grad}
+\usepackage{pst-sigsys}
+\usepackage{pstricks-add}
+\usepackage{ifthen}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{setspace}           
+%\usepackage{wrapfig}
+%\usepackage{paralist}           % Make lists into paragraphs
+\usepackage[style=ieee]{biblatex}
+\usepackage{xpatch}
+\usepackage{tikz-cd}
+
+\usepackage[a4paper,
+top=1.2in,
+bottom=1.5in,
+left=1.0in,
+right=1.0in]{geometry}
+
+% Avoid hyperref problems
+\pdfstringdefDisableCommands{%
+  \def\\{}%
+  \def\texttt#1{<#1>}%
+  \def\cite#1{<#1>}%
+  \def\eqref#1{<#1>}%
+}
+
+% ------------------------------------------------------------------------
+% Colors
+\definecolor{red}{RGB}{153,0,0}
+\definecolor{green}{RGB}{0,153,0}			
+\definecolor{blue}{RGB}{0,0,153} 
+\definecolor{darkred}{RGB}{90,0,0}
+\definecolor{darkgreen}{RGB}{0,90,0}
+\definecolor{darkblue}{RGB}{0,0,90}			
+
+\hypersetup{colorlinks,urlcolor=darkred,linkcolor=darkred,citecolor=green}
+% ------------------------------------------------------------------------
+
+
+% ------------------------------------------------------------------------
+% Environments
+
+\allowdisplaybreaks
+
+
+\declaretheoremstyle[spaceabove=6pt, spacebelow=6pt,
+headfont=\normalfont\bfseries,
+notefont=\mdseries, notebraces={(}{)},
+bodyfont=\normalfont,
+postheadspace=1em]{mystyle}
+\declaretheorem[numberwithin=section,
+shaded={bgcolor=black!10,margin=0.5cm},style=mystyle]{Theorem}
+\declaretheorem[numberlike=Theorem,
+shaded={bgcolor=black!10,margin=0.5cm},style=mystyle]{Lemma}
+\declaretheorem[numberlike=Theorem,
+shaded={bgcolor=black!10,margin=0.5cm},style=mystyle]{Proposition}
+\declaretheorem[numberlike=Theorem,
+shaded={bgcolor=black!10,margin=0.5cm},style=mystyle]{Corollary}
+\declaretheorem[numberlike=Theorem,
+shaded={bgcolor=black!10,margin=0.5cm},style=mystyle]{Definition}
+\declaretheorem[numberlike=Theorem,
+shaded={bgcolor=black!10,margin=0.5cm},style=mystyle]{Assumption}
+\declaretheorem[numberwithin=section,style=remark]{Remark}
+% ------------------------------------------------------------------------
+
+% ------------------------------------------------------------------------
+% Handy commands and shortcuts
+
+\newcommand{\mypar}[1]{\bigskip\noindent {\bf #1.}}
+\newcommand\mynote[1]{\mbox{}\marginpar{\footnotesize\raggedright\hspace{0pt}\color{blue}\emph{#1}}}
+%\newcommand{\qed}{\hfill $\Box$}
+
+% Reference to Figures, Tables, etc
+\newcommand{\fref}[1]{Fig.~\ref{#1}}
+\newcommand{\tref}[1]{Table~\ref{#1}}
+\newcommand{\eref}[1]{Equation~\ref{#1}}
+\newcommand{\cref}[1]{Chapter~\ref{#1}}
+\newcommand{\sref}[1]{Section~\ref{#1}}
+\newcommand{\ssref}[1]{Subsection~\ref{#1}}
+\newcommand{\aref}[1]{appendix~\ref{#1}}
+%\newcommand{\assref}[1]{Assumption~\ref{#1}}
+\newcommand{\alref}[1]{Algorithm~\ref{#1}}
+\newcommand{\pref}[1]{Proposition~\ref{#1}}
+\newcommand{\thref}[1]{Theorem~\ref{#1}}
+\newcommand{\dref}[1]{Definition~\ref{#1}}
+\newcommand{\lref}[1]{Lemma~\ref{#1}}
+\newcommand{\coref}[1]{Corollary~\ref{#1}}
+% ------------------------------------------------------------------------
+
+% ------------------------------------------------------------------------
+% Bibliography
+\addbibresource{refs.bib}
+% ------------------------------------------------------------------------
+
+
+\title{ADMM for snapshot foreground-background separation}
+\author{}	
+\date{}
+	
+\begin{document}
+
+\maketitle
+
+\section{Problem formulation}
+
+Our goal is to solve
+\begin{align}
+  \label{eq:prob}
+  \begin{array}[t]{ll}
+  \underset{\bm{S_1}, \ldots, \bm{S_F}}{\text{minimize}}
+  &
+  \|\bm{S_1}\|_1 + \cdots + \|\bm{S_F}\|_1 
+  + 
+  r\big(\bm{B}, \bm{S_1} , \ldots, \bm{S_F} \big)
+  \\
+  \text{subject to}
+  &
+  \bm{Y_S} = \mathcal{H}(\bm{S_1}, \ldots, \bm{S_F})\,,
+  \end{array}
+\end{align}
+where $r$ is a prior that depends on the known background $\bm{B}$ and sparse
+foreground frames $\bm{S_1}$, \ldots, $\bm{S_F}$.
+Once we find a solution $(\widehat{\bm{S}}_1, \ldots, \widehat{\bm{S}}_F)$ 
+of~\eqref{eq:prob}, the final scene can be recovered as
+\begin{align*}
+  \big(\widehat{\bm{X}}_{\bm{1}}, \ldots, \widehat{\bm{X}}_{\bm{F}}\big)
+  =
+  \bm{1}_{1\times F} \otimes \bm{B}
+  +
+  \big(\widehat{\bm{S}}_{\bm{1}}, \ldots, \widehat{\bm{S}}_{\bm{F}}\big)
+  =
+  \big(\bm{B} + \widehat{\bm{S}}_{\bm{1}}, \ldots, \bm{B} + \widehat{\bm{S}}_{\bm{F}}\big)\,.
+\end{align*}
+
+\section{ADMM} 
+
+The ADMM algorithm~\cite{Boyd11-ADMM} solves problems with the format
+ \begin{equation}
+   \label{eq:ProbSolvedByADMM}
+   \begin{array}[t]{ll}
+     \underset{\bm{y}, \bm{z}}{\text{minimize}}  & f(\bm{y}) + g(\bm{z})
+     \\
+     \text{subject to} & \bm{F y} + \bm{G z} = \bm{0}\,,
+  \end{array}
+\end{equation}
+where $f$ and $g$ are closed, proper, and convex functions, and
+$\bm{F}$ and $\bm{G}$ are given matrices. Associating a dual variable $\bm{\lambda}$ to
+the constraints of~\eqref{eq:ProbSolvedByADMM}, ADMM iterates on $k$
+\begin{subequations}\label{eq:ADMM}
+  \begin{align}
+    \bm{y}^{k+1} 
+    &= 
+    \underset{\bm{y}}{\text{argmin}}\,\, 
+    f(\bm{y}) + \frac{\rho}{2}\big\|\bm{F y} + \bm{G z}^k + \bm{\lambda}^k\big\|_2^2 
+    \label{eq:ADMMy}
+    \\
+    \bm{z}^{k+1} 
+    &= 
+    \underset{\bm{z}}{\text{argmin}}\,\, 
+    g(\bm{z}) + \frac{\rho}{2}\big\|\bm{F y}^{k+1} + \bm{Gz}  + \bm{\lambda}^k\big\|_2^2 
+    \label{eq:ADMMz}
+    \\
+    \bm{\lambda}^{k+1}
+    &=
+    \bm{\lambda}^{k} + \bm{F y}^{k+1} + \bm{G z}^{k+1}
+    \label{eq:ADMMLambda}
+    \,,
+\end{align}
+\end{subequations}
+where $\rho > 0$ is the augmented Lagrangian parameter. The augmented
+Lagrangian is
+\begin{align}
+  \label{eq:augmentedLagrangian}
+  L_{\rho}(\bm{y}, \bm{z};\, \bm{\lambda})
+  =
+  f(\bm{y}) + g(\bm{z})
+  +
+  \bm{\lambda}^\top(\bm{Fy} + \bm{Gz}) + \frac{\rho}{2}\|\bm{Fy} +
+  \bm{Gz}\|_2^2\,.
+\end{align}
+Note that ADMM~\eqref{eq:ADMM} consists of iteratively minimizing $L_\rho$
+w.r.t.\ $\bm{y}$, then w.r.t.\ $\bm{z}$ (with $\bm{y}$ fixed at the new value),
+and updating the dual variable $\bm{\lambda}$ (gradient ascent on the dual
+function).
+
+\section{Application of ADMM} 
+
+To apply ADMM to~\eqref{eq:prob}, we need to rewrite it in the same format
+as~\eqref{eq:ProbSolvedByADMM}. To do so, we introduce two copies of the
+variables $\bm{S_f}$: $\bm{U_f}$ and $\bm{V_f}$, $f = 1, \ldots, F$.
+Problem~\eqref{eq:prob} is thus equivalent to
+\begin{align}
+  \label{eq:reformulation}
+  \begin{array}[t]{cl}
+    \underset{\{\bm{S_f}, \bm{U_f}, \bm{V_f}\}_{f=1}^F}{\text{minimize}}
+    &
+    \sum_{f=1}^{F} \|\bm{U_f}\|_1 + r\big(\bm{B}, \bm{V_1}, \ldots,
+      \bm{V_F}\big) 
+    \\
+    \text{subject to}
+    &
+    \bm{Y_S} = \mathcal{H}(\bm{S_1}, \ldots, \bm{S_F})
+    \\
+    & \bm{S_f} = \bm{U_f}\,, \qquad f = 1, \ldots, F
+    \\
+    & \bm{S_f} = \bm{V_f}\,, \qquad f = 1, \ldots, F\,.
+  \end{array}
+\end{align}
+We establish the following correspondence between~\eqref{eq:prob}
+and~\eqref{eq:reformulation}:
+\begin{align*}
+  \bm{y} &\leftarrow \{\bm{S_f}\}_f
+  \\
+  \bm{z} &\leftarrow \big(\{\bm{U_f}\}_f, \{\bm{V_f}\}_f\big)
+  \\
+  f(\bm{y}) &= \text{i}_{\mathcal{H}}(\bm{S_1}, \ldots, \bm{S_F})
+  \\
+  g(\bm{z}) &= 
+    \sum_{f=1}^{F} \|\bm{U_f}\|_1 + r\big(\bm{B}, \bm{V_1}, \ldots,
+      \bm{V_F}\big)\,,
+\end{align*}
+where $\text{i}_{\mathcal{H}}$ is the indicator function of the first
+constraint of~\eqref{eq:reformulation}, i.e.,
+\begin{align*}
+  \text{i}_{\mathcal{H}}(\bm{S_1}, \ldots, \bm{S_F})
+  =
+  \left\{
+    \begin{array}{ll}
+      0 &\text{if $\bm{Y_S} = \mathcal{H}(\bm{S_1}, \ldots, \bm{S_F})$}
+      \\[0.2cm]
+      +\infty &\text{if $\bm{Y_S} \neq \mathcal{H}(\bm{S_1}, \ldots,
+      \bm{S_F})$}.
+    \end{array}
+  \right.
+\end{align*}
+Writing the correspondences for the matrices $\bm{F}$ and $\bm{G}$ is
+cumbersome, since the variables are matrices in~\eqref{eq:prob} and
+vectors in~\eqref{eq:ProbSolvedByADMM}. The easiest way to apply ADMM
+to~\eqref{eq:reformulation} is to first write the corresponding augmented
+Lagrangian~\eqref{eq:augmentedLagrangian}, using $\langle \bm{A}, \bm{B}\rangle
+= \text{tr}(\bm{A}^\top\bm{B})$ as the matrix inner product between two
+matrices $\bm{A}$ and $\bm{B}$, and the corresponding induced Frobenius norm
+$\|\bm{A}\|_F := \sqrt{\langle \bm{A}, \bm{A}\rangle} =
+\sqrt{\text{tr}(\bm{A}^\top\bm{A})}$. Using the shorthand notation
+$\overline{\bm{S}} := \{\bm{S_f}\}_{f=1}^F$, $\overline{\bm{U}} :=
+\{\bm{U_f}\}_{f=1}^F$, and $\overline{\bm{V}} := \{\bm{V_f}\}_{f=1}^F$ and
+associating the matrices $\overline{\bm{\Lambda}} = \{\bm{\Lambda_f}\}_f^{F}$
+and $\overline{\bm{\Gamma}} = \{\bm{\Gamma_f}\}_f^{F}$ to the second and third
+constraints of~\eqref{eq:reformulation}, this yields
+\begin{multline}
+  \label{eq:augmentedLagrangian-newprob}
+  L_{\rho}
+  \big(\bm{\overline{S}}, \bm{\overline{U}}, \bm{\overline{V}}\,;\,
+  \bm{\overline{\Lambda}}, \bm{\overline{\Gamma}}\big)
+  =
+  r\big(\bm{B}, \overline{\bm{V}}\big) 
+  +
+  \text{i}_{\mathcal{H}}\big(\overline{\bm{S}}\big)
+  +
+  \sum_{f=1}^{F} 
+  \Big[
+    \|\bm{U_f}\|_1
+    +
+    \text{tr}\big(\bm{\Lambda_f}^\top(\bm{S_f} - \bm{U_f})\big)
+    +
+    \text{tr}\big(\bm{\Gamma_f}^\top(\bm{S_f} - \bm{V_f})\big)
+    \\
+    +
+    \frac{\rho}{2}
+    \big\|\bm{S_f} - \bm{U_f}\big\|_F^2
+    +
+    \frac{\rho}{2}
+    \big\|\bm{S_f} - \bm{V_f}\big\|_F^2
+  \Big]\,.
+\end{multline}
+As observed for~\eqref{eq:ADMM}-\eqref{eq:augmentedLagrangian}, ADMM
+iteratively minimizes $L_\rho$ w.r.t.\ the first set of variables $\overline{\bm{S}}$;
+then, with $\overline{\bm{S}}$ fixed at the new value
+$\overline{\bm{S}}^{k+1}$, minimizes $L_\rho$ w.r.t.\ the second set of
+variables $(\overline{\bm{U}}, \overline{\bm{V}})$ [which will decompose into
+two sets of problems that can be solved in parallel]; then, it updates the
+Lagrange multipliers $\overline{\bm{\Lambda}}$ and $\overline{\bm{\Gamma}}$.
+
+More concretely, starting with arbitrary $\big(\overline{\bm{U}}^0,
+\overline{\bm{V}}^0\big)$ and $\big(\overline{\bm{\Lambda}}^0,
+\overline{\bm{\Gamma}}^0\big)$, ADMM iterates for $k = 0, 1, \ldots$, 
+\begin{subequations}
+  \label{eq:admm_applied}
+  \begin{align}
+    \overline{\bm{S}}^{k+1}
+      &=
+      \underset{\overline{\bm{S}}}{\arg\min}\,\,\,
+      \text{i}_{\mathcal{H}}\big(\overline{\bm{S}}\big)
+      +
+      \sum_{f=1}^{F} 
+      \Big[
+        \text{tr}\big((\bm{\Lambda_f}^k + \bm{\Gamma_f}^k)^\top \bm{S_f}\big)
+        +
+        \frac{\rho}{2}
+        \big\|\bm{S_f} - \bm{U_f}^k\big\|_F^2
+        +
+        \frac{\rho}{2}
+        \big\|\bm{S_f} - \bm{V_f}^k\big\|_F^2
+      \Big]
+      \label{eq:admm_applied_s}
+      \\
+      \big(\overline{\bm{U}}^{k+1}, \overline{\bm{V}}^{k+1}\big)
+      &=
+      \underset{\overline{\bm{U}}, \overline{\bm{V}}}{\arg\min}\,\,\,
+      \sum_{f=1}^{F} 
+      \Big[
+        \|\bm{U_f}\|_1
+        -\text{tr}\big(\bm{{\Lambda_f^k}}^\top \bm{U_f}\big)
+        +
+        \frac{\rho}{2} \big\|\bm{U_f} - \bm{S_f}^{k+1}\big\|_F^2
+      \Big]
+      +
+      r\big(\bm{B}, \overline{\bm{V}}\big) 
+      \notag
+      \\
+      &\qquad\qquad\qquad\qquad\qquad\qquad
+      + 
+      \sum_{f=1}^{F}
+      \Big[
+        \frac{\rho}{2}
+        \big\|\bm{V_f} - \bm{S_f}^{k+1}\big\|_F^2
+        -
+        \text{tr}\big(\bm{{\Gamma_f^k}}^\top\bm{V_f}\big)
+      \Big]
+      \label{eq:admm_applied_uv}
+      \\
+      \big(\overline{\bm{\Lambda}}^{k+1}, \overline{\bm{\Gamma}}^{k+1} \big)
+      &=
+      \big(\overline{\bm{\Lambda}}^{k}, \overline{\bm{\Gamma}}^{k} \big)
+      +
+      \rho
+      \big(
+        \bm{\overline{S}}^{k+1} - \bm{\overline{U}}^{k+1}\,,\,
+        \bm{\overline{S}}^{k+1} - \bm{\overline{V}}^{k+1}
+      \big)\,.
+      \label{eq:admm_applied_lagrange}
+  \end{align}
+\end{subequations}
+We now elaborate on how to solve each problem in~\eqref{eq:admm_applied}.
+
+\mypar{Solving~\eqref{eq:admm_applied_s}}
+Problem~\eqref{eq:admm_applied_s} is a projection onto the set of feasible
+solutions in~\eqref{eq:prob}, i.e., onto the set defined by $\bm{Y_S} =
+\mathcal{H}(\bm{S_1}, \ldots, \bm{S_F})$. Note that the second term
+of~\eqref{eq:admm_applied_s} can be rewritten as
+\begin{align*}
+  \rho
+  \sum_{f=1}^{F} 
+  \Big\|\bm{S_f} - \big[\frac{1}{2}\bm{U_f}^k + \frac{1}{2}\bm{V_f}^k -
+  \frac{1}{2\rho}(\bm{\Lambda_f}^k + \bm{\Gamma_f}^k)\big]\Big\|_F^2 + \cdots\,,
+\end{align*}
+where we omitted terms that do not depend on $\bm{S_f}$. Let us define
+\begin{align}
+  \label{eq:defp}
+  \bm{P_f}^k 
+  := 
+  \frac{1}{2}\bm{U_f}^k + \frac{1}{2}\bm{V_f}^k -
+  \frac{1}{2\rho}(\bm{\Lambda_f}^k + \bm{\Gamma_f}^k)\,,
+  \qquad f = 1, \ldots, F\,, 
+\end{align}
+and just like for the other variables, let $\overline{\bm{P}}^k$ denote the set
+of all the $\bm{P_f}^k$s: $\overline{\bm{P}}^k := \{\bm{P_f^k}\}_{f=1}^F$.
+If we vectorize $\bm{s} := \text{vec}(\overline{\bm{S}})$, $\bm{p} :=
+\text{vec}(\overline{\bm{P}})$ and $\bm{y_S} := \text{vec}(\bm{Y_S})$,
+problem~\eqref{eq:admm_applied_s} can be written as
+\begin{align}
+  \label{eq:admm_applied_s_simpl}
+  \bm{s}^{k+1}
+  =
+  \begin{array}[t]{cl}
+    \underset{\bm{s}}{\arg\min}
+    &
+    \frac{1}{2}\|\bm{s} - \bm{p}^k\|_2^2
+    \\
+    \text{s.t.}
+    &
+    \bm{y_S} = \bm{H}\bm{s}\,,
+  \end{array}
+\end{align}
+where $\bm{H}$ implements the operator $\mathcal{H}$ when its input and output
+are vectorized. Assuming that $\bm{H}$ has full row-rank, i.e., $\bm{HH}^\top$
+is invertible, \eqref{eq:admm_applied_s_simpl} has the closed-form
+solution
+\begin{align}
+  \label{eq:admm_applied_s_closed_form}
+  \bm{s}^{k+1}
+  =
+  \bm{p}^k - \bm{H}^\top(\bm{H}\bm{H}^\top)^{-1}(\bm{H} \bm{p}^k - \bm{y_s})\,.
+\end{align}
+When the snapshot measurement operator $\mathcal{H}$ implements no shifts,
+i.e., it just sums all the frames (possibly with a mask), the matrix
+$\bm{H}\bm{H}^\top$ is diagonal
+(see~\cite[eq.19]{Liu19-RankMinimizationForSnapshotCompressiveImaging}). In
+that case, \eqref{eq:admm_applied_s_closed_form} can be implemented
+efficiently. 
+
+\textbf{Question: is it the same for the one-pixel shift operator?}
+
+
+\mypar{Solving~\eqref{eq:admm_applied_uv}}
+The problems in $\overline{\bm{U}}$ and $\overline{\bm{V}}$
+in~\eqref{eq:admm_applied_uv} are decoupled: the first term in its objective
+depends only on $\overline{\bm{U}}$, and the second one depends only on
+$\overline{\bm{V}}$. Thus, \eqref{eq:admm_applied_uv} decouples into two sets
+of problems that can be solved in parallel. 
+
+\mypar{Problem in $\overline{\bm{U}}$}
+To simplify the problem, we first notice that for each $f=1, \ldots, F$, 
+\begin{align*}
+  &
+  \|\bm{U_f}\|_1
+  -\text{tr}\big(\bm{{\Lambda_f^k}}^\top \bm{U_f}\big)
+  +
+  \frac{\rho}{2} \big\|\bm{U_f} - \bm{S_f}^{k+1}\big\|_F^2
+  \\
+  =\,\,\, 
+  &
+  \|\bm{U_f}\|_1
+  +
+  \frac{\rho}{2}
+  \bigg[
+    \big\|\bm{U_f}\big\|_F^2 - 2\text{tr}\Big(\bm{S_f}^{k+1} -
+    \frac{1}{\rho}\bm{\Lambda_f}^k\Big)^\top \bm{U_f}
+  \bigg]
+  +
+  \cdots
+  \\
+  =\,\,\, 
+  &
+  \|\bm{U_f}\|_1
+  +
+  \frac{\rho}{2}
+  \Big\|\bm{U_f} - \big(\bm{S_f}^{k+1} - \frac{1}{\rho}\bm{\Lambda_f}^k\big)\Big\|_F^2
+  +
+  \cdots\,,
+\end{align*}
+where we omitted terms not depending on $\bm{U_f}$. Let 
+\begin{align}
+  \label{eq:defq}
+  \bm{Q_f}^k 
+  :=
+  \bm{S_f}^{k+1} - \frac{1}{\rho}\bm{\Lambda_f}^k\,.
+\end{align}
+The problem in $\overline{\bm{U}}$ in~\eqref{eq:admm_applied_uv} is thus
+\begin{align*}
+  \overline{\bm{U}}^{k+1}
+  =
+  \underset{\overline{\bm{U}}}{\arg\min}\,\,\,
+  \sum_{f=1}^{F} 
+  \|\bm{U_f}\|_1
+  +
+  \frac{\rho}{2}
+  \big\|\bm{U_f} - \bm{Q_f}^k\big\|_F^2\,,
+\end{align*}
+which decomposes independent problems not only across frames, but also across
+pixels. Denoting by $u$ (resp.\ $q$) a generic entry from $\overline{\bm{U}}$
+(resp.\ $\overline{\bm{Q}}^k:=\{\bm{Q_f}^k\}_{f=1}^F$), each problem has the
+format
+\begin{align}
+  u^{k+1} 
+  &= 
+  \underset{u}{\arg\min}\,\,\, |u| + \frac{\rho}{2}(u-q)^2
+  \notag
+  \\
+  &=
+  \left\{ 
+    \begin{array}{ll}
+      q + \frac{1}{\rho} &,\,\, q < -\frac{1}{\rho}
+      \\[0.1cm]
+      0&,\,\, |q| \leq \frac{1}{\rho}
+      \\[0.1cm]
+      q - \frac{1}{\rho}&,\,\, q > \frac{1}{\rho}\,,
+    \end{array}
+  \right.
+  \label{eq:softthresholding}
+\end{align}
+that is, a soft-thresholding solution.
+
+\mypar{Problem in $\overline{\bm{V}}$}
+Given the similarity between the quadratic+linear terms in $\bm{U_f}$ and
+$\bm{V_f}$ in~\eqref{eq:admm_applied_uv}, simplify the problem in a similar
+way, i.e., we first write
+\begin{align*}
+  -\text{tr}\big(\bm{{\Gamma_f^k}}^\top \bm{V_f}\big)
+  +
+  \frac{\rho}{2} \big\|\bm{V_f} - \bm{S_f}^{k+1}\big\|_F^2
+  =
+  \frac{\rho}{2}
+  \Big\|\bm{V_f} - \big(\bm{S_f}^{k+1} - \frac{1}{\rho}\bm{\Gamma_f}^k\big)\Big\|_F^2
+  +
+  \cdots\,,
+\end{align*}
+where, again, we omitted terms independent from $\bm{V_f}$. Defining
+\begin{align}
+  \label{eq:defr}
+  \bm{R_f}^k 
+  :=
+  \bm{S_f}^{k+1} - \frac{1}{\rho}\bm{\Gamma_f}^k\,, 
+\end{align}
+the problem in $\overline{\bm{V}}$ in~\eqref{eq:admm_applied_uv} is
+\begin{align}
+  \label{eq:probvgeneric}
+  \overline{\bm{V}}^{k+1}
+  =
+  \underset{\overline{\bm{V}}}{\arg\min}\,\,\,
+  r\big(\bm{B}, \overline{\bm{V}}\big)
+  +
+  \frac{\rho}{2}
+  \sum_{f=1}^{F} 
+  \big\|\bm{V_f} - \bm{R_f}\big\|_F^2\,.
+\end{align}
+When $r$ is the nuclear norm of the matrix whose columns are patches extracted
+from the entire snapshot sequence, this problem corresponds to problems
+(7)/(14)/(24) in~\cite{Liu19-RankMinimizationForSnapshotCompressiveImaging} and
+thus can be solved using similar techniques.
+
+\section{Resulting algorithm}
+
+Notice that the dual variables $\bm{\Lambda_f}^k$ and $\bm{\Gamma_f}^k$
+in~\eqref{eq:defp}, \eqref{eq:defq}, and~\eqref{eq:defr} always appear
+multiplied by $1/\rho$. If we multiply both sides
+of~\eqref{eq:admm_applied_lagrange} by $1/\rho$, all their appearances in the
+algorithm is multiplied by that factor. Hence, we redefine them as
+\begin{align*}
+  \bm{\Lambda_f}^k &\leftarrow  \frac{1}{\rho}\bm{\Lambda_f}^k
+  \\
+  \bm{\Gamma_f}^k &\leftarrow  \frac{1}{\rho}\bm{\Gamma_f}^k\,.
+\end{align*}
+The resulting algorithm is described in Algorithm~\ref{alg:admm_applied}.
+See
+an example of the implementation of ADMM to solve a simpler problem in 
+\href{https://github.com/marijavella/sr-via-CNNs-and-tvtv/blob/master/code/TVTV_Solver_CPU.m}{Github}.
+
+\begin{algorithm}
+  \caption{ADMM applied to~\eqref{eq:reformulation}}
+  \label{alg:admm_applied}
+  \begin{algorithmic}[1]
+  %\small
+  \algrenewcommand\algorithmicrequire{\textbf{Input:}}
+  \Require measurements $\bm{Y_S} \in \mathbb{R}^{M\times(N+F-1)}$, initial
+  $\rho > 0$, dimensions $(M,N,F)$,  matrix $\bm{H}$ (or
+  function handles for matrix-vector products), background $\bm{B} \in
+  \mathbb{R}^{M\times N}$, maximum \# of iterations
+  $K$, and stopping tolerance $\epsilon > 0$
+  \algrenewcommand\algorithmicrequire{\textbf{Initialization:}}
+  \Require  Set $\bm{U_f}^0, \bm{V_f}^0, \bm{\Lambda_f}^0, \bm{\Gamma_f}^0 \in
+  \mathbb{R}^{M\times N}$, for $f =1, \ldots, F$, arbitrarily
+  \For{$k = 0, 1, \ldots, K$}
+    \State
+    Set $\bm{P_f}^k = \frac{1}{2}\bm{U_f}^k + \frac{1}{2}\bm{V_f}^k -
+    \frac{1}{2}(\bm{\Lambda_f}^k + \bm{\Gamma_f}^k)$, for $f = 1, \ldots, F$
+    \State 
+    Find
+    $$\bm{s}^{k+1} = \bm{p}^k - \bm{H}^\top(\bm{H}\bm{H}^\top)^{-1}(\bm{H}
+    \bm{p}^k - \bm{y_s})\,,$$
+    where $\bm{s}^{k+1}$, $\bm{p}^k$, and $\bm{y_s}$ are vectorizations of
+    $\overline{\bm{S}}^{k+1}$, $\overline{\bm{P}}^k$, and $\bm{Y_S}$
+    \State
+    Set, for all $f=1, \ldots, F$,
+    \begin{align*}
+      \bm{Q_f}^k &= \bm{S_f}^{k+1} - \bm{\Lambda_f}^k
+      \\
+      \bm{R_f}^k &= \bm{S_f}^{k+1} - \bm{\Gamma_f}^k
+    \end{align*}
+    \State
+    Each entry of $\bm{U_f}^{k+1}$ is computed via
+    soft-thresholding~\eqref{eq:softthresholding}, using $\bm{Q_f}^k$ and
+    $\rho$, $f=1, \ldots, F$
+    \State 
+    The variables $\bm{V_f}$ are updated by solving~\eqref{eq:probvgeneric},
+    using $\bm{B}$, $\bm{R_f}$ and $\rho$
+    \State
+    Update dual variables, for all $f=1, \ldots, F$,
+    \begin{align*}
+      \bm{\Lambda_f}^{k+1} &= \bm{\Lambda_f}^{k} + \bm{S_f}^{k+1} - \bm{U_f}^{k+1}
+      \\
+      \bm{\Gamma_f}^{k+1} &= \bm{\Gamma_f}^{k} + \bm{S_f}^{k+1} - \bm{V_f}^{k+1}
+    \end{align*}
+    \State Compute primal and dual residuals, and update
+    $\rho$~\cite[\S3.4.1]{Boyd11-ADMM}
+    \If{dual $+$ primal residuals $< \epsilon$}
+    \State Break
+    \EndIf
+  \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+\printbibliography
+
+\end{document}
+
+
