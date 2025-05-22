@@ -1,27 +1,29 @@
+
 import numpy as np
 import scipy.io as io
 
-import utils.physics
+from utils.physics import apply_cacti_mask
 from utils.visualize import visualize_cube
 
 
-def init():
+def init(dataset: str):
     # Generate Measurement operator
-    Phix, Phity = utils.physics.generate_phi()
+    # TODO: Waiting for Shubham to generate own masks according to device physics
 
     # Load data from Matlab file
-    dataset = io.loadmat("./datasets/kobe32_cacti.mat")
+    dataset = io.loadmat(dataset)
 
     x = dataset['orig']
+    mask = dataset['mask']
+    meas = dataset['meas']
+    y = apply_cacti_mask(x, mask)
+    assert np.all(np.isclose(0, y-meas)
+                  ), "Measured signal doesn't match dataset"
 
-    return x, Phix, Phity
-
-
-def main():
-    Phix, Phity = utils.physics.generate_phi()
+    return x, y, mask
 
 
 if __name__ == "__main__":
-    x, _, _ = init()
+    x, y, mask = init(dataset="./datasets/traffic48_cacti.mat")
     visualize_cube(x)
     raise SystemExit
