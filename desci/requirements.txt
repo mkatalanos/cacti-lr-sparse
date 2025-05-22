@@ -1,0 +1,8 @@
+numpy
+scipy
+ipython
+cvxpy
+scikit-image
+opencv-python
+numba
+PyWavelets
