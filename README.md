@@ -1,9 +1,3 @@
----
-title: README
-date:  2025-05-20
-vim:nospell:
----
-
 - **Deadline:** 2025-07-01
 - **Title:** Snapshot Compressive Imaging with Foreground-Background Separation
 

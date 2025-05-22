@@ -1,9 +1,3 @@
----
-title: Problem Formulation
-date:  2025-05-20
-vim:nospell:
----
-
 # Model
 Let $\boldsymbol{X_1}, \ldots, \boldsymbol{X_F} \in \mathbb{R}^{M \times N}$ represent a sequence of
 $F$ images, each with dimensions $M\times N$. Our goal is to reconstruct them
