@@ -8,7 +8,7 @@ def generate_phi() -> Tuple[Callable, Callable]:
     """
     Generates two functions that take as argument a vector and return
     Φχ
-    χ'Φ
+    Φ'y
     """
     def phix(x): return x
     def phity(y): return y
