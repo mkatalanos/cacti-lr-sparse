@@ -18,6 +18,19 @@
 - [ADMM for background-foreground](admm-for-background-foreground) applies ADMM
   to solve the estimation problem.
 
+## Alternative regularizers
+
+After inspecting and profiling the
+[DeSCI](https://doi.org/10.1109/TPAMI.2018.2873587)
+[code](https://github.com/liuyang12/DeSCI), it seems that the operation that
+takes longer is the extraction of patches of the data cube into the *low-rank*
+matrix. Although there are probably several improvements that can be done, this
+will likely make the final algorithm quite slow.
+
+An alternative is to use a **video denoiser**, e.g.,
+[FastDVDNet](https://openaccess.thecvf.com/content_CVPR_2020/html/Tassano_FastDVDnet_Towards_Real-Time_Deep_Video_Denoising_Without_Flow_Estimation_CVPR_2020_paper.html)
+([code](https://github.com/m-tassano/fastdvdnet)), just as in [PnP-FastDVDNet](https://doi.org/10.1109/TPAMI.2021.3099035).
+
 # Todo
 
 - [ ] Find or create sequence of images, real or synthetic, satisfying [above hypothesis](# Main idea). @Shubham
