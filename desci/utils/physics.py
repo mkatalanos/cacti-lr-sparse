@@ -1,6 +1,7 @@
 from typing import Callable, Tuple
 
 import numpy as np
+import scipy.sparse as sp
 from numpy.typing import NDArray
 
 
@@ -32,3 +33,15 @@ def apply_cacti_mask(x: NDArray[np.uint8], mask: NDArray[np.uint8]) \
         y[:, :, i] = np.sum(np.dsplit(x, B_T)[i]*mask, axis=2)
 
     return y
+
+
+def phi_from_mask(mask: NDArray[np.uint8]):
+    H, W, B = mask.shape
+
+    mask_flat = mask.reshape(H*W, B)
+    diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8)
+                     for b in range(B)]
+
+    Phi = sp.hstack(diag_matrices, format="coo", dtype=np.uint8)
+
+    return Phi 
