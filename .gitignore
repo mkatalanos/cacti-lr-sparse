@@ -12,3 +12,8 @@
 *.bcf
 *.ps
 
+#Python stuff
+__pycache__/
+virt_env/
+*.py[cod]
+numba_cache/
