@@ -4,7 +4,7 @@
 # Main idea
 **Message/hypothesis:** Assuming that a snapshot image can be decomposed into background +
   foreground, such that 
-  1. the background is known in advance;
+  1. ~~the background is known in advance;~~
   2. the background is mostly static throughout the sequence;
   3. the foreground is sparse,
   
@@ -12,24 +12,13 @@
 
 ## Documents
 
-- [Problem formulation](problem-formulation) describes the one-pixel
+- ~~[Problem formulation](problem-formulation) describes the one-pixel
   shift measurement operator, formalizes the assumption on
-  background-foreground separation, and describes an estimation problem.
-- [ADMM for background-foreground](admm-for-background-foreground) applies ADMM
-  to solve the estimation problem.
-
-## Alternative regularizers
-
-After inspecting and profiling the
-[DeSCI](https://doi.org/10.1109/TPAMI.2018.2873587)
-[code](https://github.com/liuyang12/DeSCI), it seems that the operation that
-takes longer is the extraction of patches of the data cube into the *low-rank*
-matrix. Although there are probably several improvements that can be done, this
-will likely make the final algorithm quite slow.
-
-An alternative is to use a **video denoiser**, e.g.,
-[FastDVDNet](https://openaccess.thecvf.com/content_CVPR_2020/html/Tassano_FastDVDnet_Towards_Real-Time_Deep_Video_Denoising_Without_Flow_Estimation_CVPR_2020_paper.html)
-([code](https://github.com/m-tassano/fastdvdnet)), just as in [PnP-FastDVDNet](https://doi.org/10.1109/TPAMI.2021.3099035).
+  background-foreground separation, and describes an estimation problem.~~
+- ~~[ADMM for background-foreground](admm-for-background-foreground) applies ADMM
+  to solve the estimation problem.~~
+- This [document](admm-lr-plus-sparse/admm-lr-plus-sparse.pdf) formulates the
+  reconstruction problem, applies ADMM to solve it, and details each step.
 
 # Todo
 
@@ -46,26 +35,33 @@ An alternative is to use a **video denoiser**, e.g.,
           [code](https://github.com/IndigoPurple/DEQSCI) [optional]
     - [ ] [EfficientSCI++](https://doi.org/10.1007/s11263-024-02101-y),
           [code](https://github.com/mcao92/EfficientSCI-plus-plus) [optional]
-- [X] Develop algorithm to solve [@Joao]
-    $$
-    \begin{align*}
-      \begin{array}{ll}
-      \underset{\boldsymbol{S_1}, \ldots, \boldsymbol{S_F}}{\text{minimize}}
-      &
-      \|\boldsymbol{S_1}\|_1 + \cdots + \|\boldsymbol{S_F}\|_1 
-      + 
-      r(\boldsymbol{B}, \overline{\boldsymbol{S}})
-      \\
-      \text{subject to}
-      &
-      \boldsymbol{Y_S} = \mathcal{H}(\boldsymbol{S_1}, \ldots, \boldsymbol{S_F})
-      \end{array}
-    \end{align*}
-    $$
-    See [file](admm/admm.pdf)
-- [ ] Implement [admm](admm/admm.pdf) in Python/Matlab
+- [ ] Implement [ADMM](admm-lr-plus-sparse/admm-lr-plus-sparse.pdf) in Python;
+      don't forget to unit test each step
+    - [ ] Skeleton of the algorithm @Shubham + @Marios
+    - [ ] Update of S and B @Shubham
+    - [ ] Update of L, U, V @Marios
 - [ ] Test implementation for simple problem against [CVXPY](https://www.cvxpy.org/) or [CVX](https://cvxr.com/cvx/)
 - [ ] Apply ADMM to synthetic images and compare against DeSCI and other algorithms
 - [ ] Apply ADMM to real images and compare against DeSCI and other algorithms
 
 
+# Alternative ideas 
+
+## Regularizers
+
+After inspecting and profiling the
+[DeSCI](https://doi.org/10.1109/TPAMI.2018.2873587)
+[code](https://github.com/liuyang12/DeSCI), it seems that the operation that
+takes longer is the extraction of patches of the data cube into the *low-rank*
+matrix. Although there are probably several improvements that can be done, this
+will likely make the final algorithm quite slow.
+
+1. An alternative is to use a **video denoiser**, e.g.,
+   [FastDVDNet](https://openaccess.thecvf.com/content_CVPR_2020/html/Tassano_FastDVDnet_Towards_Real-Time_Deep_Video_Denoising_Without_Flow_Estimation_CVPR_2020_paper.html)
+   ([code](https://github.com/m-tassano/fastdvdnet)), just as in
+   [PnP-FastDVDNet](https://doi.org/10.1109/TPAMI.2021.3099035).
+
+2. Another alternative is to use other patch priors. See two of the examples in
+   the
+   [DeepInv](https://deepinv.github.io/deepinv/auto_examples/index.html#examples)
+   package.
