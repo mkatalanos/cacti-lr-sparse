@@ -9,14 +9,12 @@ def extract_patches(X: NDArray[np.uint8], patch_size: int) -> NDArray[np.uint8]:
     M, N, F = X.shape
     p = patch_size
     P = p * p
-    stride = p  # Non overlapping patches
 
     patches = []
 
     for f in range(F):
         frame = X[:, :, f]
-        # Extract patches using sliding window
-        frame_patches = view_as_windows(frame, (p, p), step=stride)
+        frame_patches = view_as_windows(frame, (p, p), step=p)
         # Reshape to (num_patches, P)
         frame_patches = frame_patches.reshape(-1, P)
         patches.append(frame_patches)
@@ -38,7 +36,7 @@ def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
     num_patches_per_frame = (M // p) * (N // p)
     assert L == num_patches_per_frame * F, "L does not match expected patch count."
 
-    X_rec = np.zeros((M, N, F))
+    X_rec = np.zeros((M, N, F), dtype=np.uint8)
 
     for f in range(F):
         # Get patches for frame f
@@ -57,3 +55,11 @@ def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
                 idx += 1
 
     return X_rec
+
+
+def find_similar(patch: NDArray, patches: NDArray, M: int = 20):
+    # Euclidean distance
+    distances = np.linalg.norm(patches - patch[:, np.newaxis], axis=0)
+
+    top_idx = distances.argsort()[:M]
+    return patches[:, top_idx]

@@ -3,18 +3,36 @@ from typing import Callable, Tuple
 import cvxpy as cp
 import numpy as np
 import scipy.sparse as sp
+from numba import jit
 from numpy.typing import NDArray
 
 
-def generate_phi() -> Tuple[Callable, Callable]:
+def generate_phi(mask: NDArray[np.uint8]) -> Tuple[Callable, Callable, NDArray[np.uint8]]:
     """
     Generates two functions that take as argument a vector and return
     Φχ
     Φ'y
+    ΦΦ'
     """
-    def phix(x): return x
-    def phity(y): return y
-    return phix, phity
+    H, W, T = mask.shape
+
+    def phix(x):
+        return np.multiply(mask, x.reshape(H, W, -1)).sum(axis=2).reshape(-1)
+
+    def phity(y):
+        y = y.reshape(H, W)
+        x = mask * y[:, :, None]
+        return x.reshape(-1)
+
+    # H, W, B = mask.shape
+    # flat_mask = mask.reshape(-1, B)
+    #
+    # PhiPhit = np.dot(flat_mask, flat_mask.T)
+
+    # PhiPhit = (mask**2).sum(axis=2).reshape(-1)
+    PhiPhit = mask.sum(axis=2).reshape(-1)
+
+    return phix, phity, PhiPhit
 
 
 def apply_cacti_mask(x: NDArray[np.uint8], mask: NDArray[np.uint8]) \

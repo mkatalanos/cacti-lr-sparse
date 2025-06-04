@@ -8,6 +8,7 @@ import math
 
 import cv2
 import numpy as np
+from numba import jit
 
 
 def ssim(img1, img2) -> np.float64:

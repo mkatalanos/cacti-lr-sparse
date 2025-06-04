@@ -3,6 +3,7 @@ import numpy as np
 import scipy.io as io
 import scipy.sparse as sp
 from numpy.typing import NDArray
+from utils.patches import extract_patches, find_similar
 from utils.physics import (apply_cacti_mask, apply_cacti_mask_single,
                            phi_from_mask)
 from utils.visualize import visualize_cube
@@ -27,11 +28,11 @@ def init(dataset: str):
     return x, y, mask
 
 
-def cvxpy_problem(x: NDArray[np.uint8], y: NDArray[np.uint16],
-                  mask: NDArray[np.uint8]):
+def cvxpy_tv_problem(x: NDArray[np.uint8], y: NDArray[np.uint16],
+                     mask: NDArray[np.uint8]):
     """
-    Define and solve a convexpy problem based on NNM
-    |AX-y|_2^2 + lambda |X|_*
+    Define and solve a convexpy problem based on TV Norm
+    |AX-y|_2^2 + lambda |X|_TV
     """
 
     H, W, B = x.shape
@@ -62,6 +63,13 @@ def cvxpy_problem(x: NDArray[np.uint8], y: NDArray[np.uint16],
 
 if __name__ == "__main__":
     x, y, mask = init(dataset="./datasets/traffic48_cacti.mat")
-    problem = cvxpy_problem(x, y, mask)
-    problem.solve(solver="SCS")
+    H, W, B = mask.shape
+
+    patch_size = 64
+    patches = extract_patches(x, patch_size)
+    print(f"Number of patches {patches.shape[1]}")
+    sim_patches = find_similar(patches[:, 25], patches, 8)
+
+    visualize_cube(sim_patches.reshape(patch_size, patch_size, -1))
+
     raise SystemExit
