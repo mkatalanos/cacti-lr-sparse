@@ -3,10 +3,14 @@ from PIL import Image
 
 
 def visualize_cube(img):
-    shape = img.shape
-    side_by_side = np.zeros((shape[0], shape[1] * shape[2]), dtype=np.uint8)
+    if len(img.shape) != 3:
+        img = img[:, np.newaxis]
+    assert len(img.shape) == 3
 
-    for i in range(shape[2]):
-        side_by_side[:, i*shape[1]:(i+1)*shape[1]] = img[:, :, i]
+    H, W, F = img.shape
+    side_by_side = np.zeros((H, W * F), dtype=np.uint8)
+
+    for i in range(F):
+        side_by_side[:, i*W:(i+1)*W] = img[:, :, i]
 
     Image.fromarray(side_by_side).show()
