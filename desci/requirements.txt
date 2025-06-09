@@ -5,6 +5,7 @@ matplotlib
 numba
 numpy
 opencv-python
+pytest
 PyWavelets
 scikit-image
 scikit-learn
