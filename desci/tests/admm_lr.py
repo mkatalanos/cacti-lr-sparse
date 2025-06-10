@@ -7,8 +7,8 @@ import pytest
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..')))
 
+from lr_sparse_admm import update_S, update_L
 # lr_sparse_admm.py
-from lr_sparse_admm import update_S
 
 
 @pytest.fixture
@@ -35,5 +35,17 @@ def test_S_update_run(sample_data):
     rho = 0.3
 
     _ = update_S(Y, B, mask, U, V, Theta, rho)
+
+    assert True, "Code couldn't run"
+
+
+def test_L_update_run(sample_data):
+    x, y, mask, (M, N, F) = sample_data
+
+    B = np.random.randint(0, 256, mask.shape)
+    Delta = np.random.randint(0, 256, mask.shape)
+    rho = 0.3
+    lambda_2 = 0.5
+    _ = update_L(B, Delta, rho, lambda_2, mask, max_it=3)
 
     assert True, "Code couldn't run"
