@@ -1,12 +1,11 @@
 from typing import Any, Callable, Tuple
 
-# External libraries
 import cvxpy as cp
 import numpy as np
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
 
-
+from main import init
 from utils.patches import extract_patches, find_similar
 from utils.physics import generate_phi
 from utils.visualize import visualize_cube
@@ -51,8 +50,24 @@ def update_S(Y, B, mask, U, V, Theta, rho):
     return S
 
 
-def update_L():
-    pass
+def update_L(B, Delta, rho, lambda_2, mask, delta=1e-3,
+             epsilon=1e-3, max_it=1000, svd_l=10, ):
+    M, N, F = mask.shape
+    La = B + (1/rho)*Delta
+    La_bar = bar(La)
+    u, s, vh = randomized_svd(La_bar, svd_l)
+    # s is array of components
+    dold = s.copy()
+
+    for t in range(max_it):
+        d = np.max(s-(lambda_2/rho)*(1/(dold+epsilon)), 0)
+        if np.max(np.linalg.norm(d-dold, axis=1)) <= delta:
+            break
+
+    L_bar = u @ np.diag(d) @ vh
+
+    L = L_bar.reshape(M, N, F)
+    return L
 
 
 def update_U():
