@@ -487,7 +487,8 @@ $\mathbb{R}^{M\times N}$.
     $(C_2)_{:, :, f} = M_f \odot Y_B$, $f = 1, \ldots, F$
     \State $C_3 = C_1 + C_2 \in \mathbb{R}^{M \times N\times F}$
     \State $S^{k+1} \in \mathbb{R}^{M\times N\times F}$ such that each slice
-    $S^{k+1}_{:, :, f} = \left[1\oslash(M_f^2 + 2\rho 1_{M\times N})\right] \odot C_3$,
+    $S^{k+1}_{:, :, f} = \left[1\oslash(M_f^2 + 2\rho 1_{M\times N})\right]
+    \odot {C_3}_{:, :, f}$,
     $f=1, \ldots, F$
     \label{subAlg:lastStep}
   \end{algorithmic}
