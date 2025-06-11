@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-from utils.physics import apply_cacti_mask, apply_cacti_mask_single
+from utils.physics import (apply_cacti_mask, apply_cacti_mask_single,
+                           generate_phi, phi, phit)
 
 
 @pytest.fixture
@@ -29,3 +30,29 @@ def test_check_trunc_y(sample_data):
 
     print(f"{y_full.shape=}, {y_trunc.shape=}, {y_full[:, :, 0].shape=}")
     np.testing.assert_array_equal(y_trunc, y_full[:, :, 0])
+
+
+def test_gen_phi_is_phi(sample_data):
+    x, mask, T = sample_data
+    x = x[:, :, :T]
+
+    _phi, _, _ = generate_phi(mask)
+
+    a = phi(x, mask)
+    b = _phi(x)
+
+    np.testing.assert_array_equal(a, b)
+
+
+def test_gen_phit_is_phit(sample_data):
+    x, mask, T = sample_data
+    x = x[:, :, :T]
+
+    _, _phit, _ = generate_phi(mask)
+
+    y = phi(x, mask)
+
+    a = phit(y, mask)
+    b = _phit(y)
+
+    np.testing.assert_array_equal(a, b)

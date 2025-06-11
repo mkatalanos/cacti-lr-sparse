@@ -2,37 +2,47 @@ from typing import Any, Callable, Tuple
 
 import cvxpy as cp
 import numpy as np
-from main import init
+from numba import jit, njit
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
+
+from main import init
 from utils.patches import extract_patches, find_similar
-from utils.physics import generate_phi
+from utils.physics import generate_phi, phi
 from utils.visualize import visualize_cube
 
 
+@njit
+def soft_thresh(x, lambda_):
+    return np.sign(x) * np.maximum(np.abs(x)-lambda_, 0)
+
+
+@njit
 def bar(x: NDArray) -> NDArray:
-    assert len(x.shape) == 3
+    # assert len(x.shape) == 3
     M, N, F = x.shape
+    x_bar = x.reshape(M*N, F)
 
-    x_bar = np.zeros((M*N, F))
-
-    for f in range(F):
-        x_bar[:, f] = x[:, :, f].reshape(-1)
+    # x_bar = np.zeros((M*N, F))
+    #
+    # for f in range(F):
+    #     x_bar[:, f] = x[:, :, f].reshape(-1)
 
     return x_bar
 
 
+@njit
 def tilde(x: NDArray, patch_size: int = 16) -> NDArray:
     assert len(x.shape) == 3
     return extract_patches(x, patch_size)
 
 
+@njit
 def update_S(Y, B, mask, U, V, Theta, rho):
 
-    phi, phit, phiphit = generate_phi(mask)
     M, N, F = mask.shape
 
-    Y_b = Y-phi(B).reshape((M, N))
+    Y_b = Y-phi(B, mask).reshape((M, N))
     C1 = rho*(U+V-1/rho * Theta)
     C2 = np.zeros((M, N, F))
     for f in range(F):
@@ -70,8 +80,10 @@ def update_L(B, Delta, rho, lambda_2, mask, delta=1e-3,
     return L
 
 
-def update_U():
-    pass
+@njit
+def update_U(S, Theta, lambda_1, rho):
+    U_a = S + Theta/rho
+    return soft_thresh(U_a, lambda_1/rho)
 
 
 def update_V():

@@ -3,8 +3,32 @@ from typing import Callable, Tuple
 import cvxpy as cp
 import numpy as np
 import scipy.sparse as sp
-from numba import jit
+from numba import jit, njit
 from numpy.typing import NDArray
+
+
+@njit
+def phi(x: NDArray, mask: NDArray):
+    """
+    Applies forward transform
+    x,mask
+    """
+    H, W, T = mask.shape
+    # x = x.reshape(H, W, -1)
+    y = np.multiply(mask, x).sum(axis=2).reshape(-1)
+    return y
+
+
+@njit
+def phit(y, mask):
+    """
+    Applies the adjoint of the transform
+    y,mask
+    """
+    H, W, T = mask.shape
+    y = y.reshape(H, W)
+    x = mask * y[:, :, None]
+    return x.reshape(-1)
 
 
 def generate_phi(mask: NDArray[np.uint8]) -> Tuple[Callable, Callable, NDArray[np.uint8]]:

@@ -1,14 +1,6 @@
-import os
-import sys
-
 import numpy as np
 import pytest
-
-sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '..')))
-
-from lr_sparse_admm import update_S, update_L
-# lr_sparse_admm.py
+from lr_sparse_admm import update_L, update_S, update_U
 
 
 @pytest.fixture
@@ -34,9 +26,9 @@ def test_S_update_run(sample_data):
     Theta = B.copy()
     rho = 0.3
 
-    _ = update_S(Y, B, mask, U, V, Theta, rho)
+    S = update_S(Y, B, mask, U, V, Theta, rho)
 
-    assert True, "Code couldn't run"
+    assert S.shape == (M, N, F), "Shape of S must be MxNxF"
 
 
 def test_L_update_run(sample_data):
@@ -46,6 +38,18 @@ def test_L_update_run(sample_data):
     Delta = np.random.randint(0, 256, mask.shape)
     rho = 0.3
     lambda_2 = 0.5
-    _ = update_L(B, Delta, rho, lambda_2, mask, max_it=3)
+    L = update_L(B, Delta, rho, lambda_2, mask, max_it=3)
 
-    assert True, "Code couldn't run"
+    assert L.shape == (M, N, F), "Shape of L must be MxNxF"
+
+
+def test_U_update_run(sample_data):
+    x, y, mask, (M, N, F) = sample_data
+
+    S = np.random.randint(0, 256, mask.shape)
+    Theta = np.random.randint(0, 256, mask.shape)
+    rho = 0.3
+    lambda_1 = 0.5
+    U = update_U(S, Theta, lambda_1, rho)
+
+    assert U.shape == (M, N, F), "Shape of U must be MxNxF"
