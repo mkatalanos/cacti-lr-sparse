@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from lr_sparse_admm import update_L, update_S, update_U
+from lr_sparse_admm import update_B, update_L, update_S, update_U
 
 
 @pytest.fixture
@@ -53,3 +53,19 @@ def test_U_update_run(sample_data):
     U = update_U(S, Theta, lambda_1, rho)
 
     assert U.shape == (M, N, F), "Shape of U must be MxNxF"
+
+
+def test_B_update_run(sample_data):
+    x, y, mask, (M, N, F) = sample_data
+
+    # Testing B run
+    Y = y
+    mask = mask
+    S = np.random.randint(0, 256, mask.shape)
+    L = S.copy()
+    Delta = S.copy()
+    rho = 0.3
+
+    B = update_B(Y, mask, S, L, Delta, rho)
+
+    assert B.shape == (M, N, F), "Shape of B must be MxNxF"

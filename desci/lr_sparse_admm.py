@@ -2,11 +2,10 @@ from typing import Any, Callable, Tuple
 
 import cvxpy as cp
 import numpy as np
+from main import init
 from numba import jit, njit
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
-
-from main import init
 from utils.patches import extract_patches, find_similar
 from utils.physics import generate_phi, phi
 from utils.visualize import visualize_cube
@@ -90,14 +89,32 @@ def update_V():
     pass
 
 
-def update_B():
-    pass
+@njit
+def update_B(Y, mask, S, L, Delta, rho):
+
+    M, N, F = mask.shape
+
+    Ys = Y - phi(S, mask).reshape(M, N)
+    C1 = rho*(L-Delta/rho)
+    C2 = np.zeros((M, N, F))
+    for f in range(F):
+        C2[:, :, f] = np.multiply(mask[:, :, f], Ys)
+
+    C3 = C1 + C2
+    B = np.zeros((M, N, F))
+
+    mff = np.multiply(mask, mask)
+
+    for i in range(F):
+        B[:, :, f] = np.multiply(np.divide(1, mff[:, :, f]+rho), C3[:, :, f])
+
+    return B
 
 
 if __name__ == "__main__":
     x, y, mask = init(dataset="./datasets/traffic48_cacti.mat")
     M, N, F = mask.shape
-    phi, phit, phiphit = generate_phi(mask)
+    # phi, phit, phiphit = generate_phi(mask)
     # x = x.reshape(-1)
     # y = y.reshape(-1)
 
@@ -113,12 +130,21 @@ if __name__ == "__main__":
     # S = update_S(Y, B, mask, U, V, Theta, rho)
 
     # Testing L run
+    # Y = y
+    # B = np.random.randint(0, 256, mask.shape)
+    # Delta = np.random.randint(0, 256, mask.shape)
+    # rho = 0.3
+    # lambda_2 = 0.5
+    # L = update_L(B, Delta, rho, lambda_2, mask, max_it=3)
 
+    # Testing B run
     Y = y
-    B = np.random.randint(0, 256, mask.shape)
-    Delta = np.random.randint(0, 256, mask.shape)
+    mask = mask
+    S = np.random.randint(0, 256, mask.shape)
+    L = S.copy()
+    Delta = S.copy()
     rho = 0.3
-    lambda_2 = 0.5
-    L = update_L(B, Delta, rho, lambda_2, mask, max_it=3)
+
+    B = update_B(Y, mask, S, L, Delta, rho)
 
     raise SystemExit
