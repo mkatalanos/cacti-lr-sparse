@@ -3,11 +3,11 @@ from typing import Callable, Tuple
 import cvxpy as cp
 import numpy as np
 import scipy.sparse as sp
-from numba import jit, njit
+# from numba import jit, njit
 from numpy.typing import NDArray
 
 
-@njit
+# @njit
 def phi(x: NDArray, mask: NDArray):
     """
     Applies forward transform
@@ -19,7 +19,6 @@ def phi(x: NDArray, mask: NDArray):
     return y
 
 
-@njit
 def phit(y, mask):
     """
     Applies the adjoint of the transform
@@ -27,7 +26,11 @@ def phit(y, mask):
     """
     H, W, T = mask.shape
     y = y.reshape(H, W)
-    x = mask * y[:, :, None]
+    x = np.divide(y[:, :, None], mask)
+    x[np.isnan(x)] = 0
+    x[np.isinf(x)] = 0
+    x /= x.max()
+    x *= 255
     return x.reshape(-1)
 
 
