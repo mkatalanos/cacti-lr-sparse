@@ -36,10 +36,10 @@ def update_S(Y, B, mask, U, V, Theta, rho):
 
     Y_b = Y-phi(B, mask).reshape((M, N))
     C1 = rho*(U+V-1/rho * Theta)
-    C2 = np.zeros((M, N, F))
-    for f in range(F):
-        C2[:, :, f] = np.multiply(mask[:, :, f], Y_b)
-
+    # C2 = np.zeros((M, N, F))
+    # for f in range(F):
+    #     C2[:, :, f] = np.multiply(mask[:, :, f], Y_b)
+    C2 = np.multiply(mask, Y_b[:, :, np.newaxis])
     C3 = C1 + C2
     S = np.zeros((M, N, F))
 
@@ -54,17 +54,17 @@ def update_S(Y, B, mask, U, V, Theta, rho):
 
 
 def update_L(B, Delta, rho, lambda_2, mask, delta=1e-3,
-             epsilon=1e-3, max_it=1000, svd_l=10, ):
+             epsilon=1e-3, max_it=1000, svd_l=30):
     M, N, F = mask.shape
-    La = B + (1/rho)*Delta
-    La_bar = bar(La)
+    La = B + Delta / rho
+    La_bar = La.reshape(M*N, F)
     u, s, vh = randomized_svd(La_bar, svd_l)
     # s is array of components
     dold = s.copy()
 
     for t in range(max_it):
         d = s-(lambda_2/rho)*(1/(dold+epsilon))
-        d = d.clip(0)
+        d = np.maximum(d, 0)
         if np.abs(d-dold).max() <= delta:
             break
 
@@ -81,7 +81,7 @@ def update_U(S, Theta, lambda_1, rho):
 
 
 def update_V(S, Gamma, rho, lambda_3,
-             max_it=50, epsilon=1e-3, delta=1e-3, svd_l=10, patch_size=16):
+             max_it=50, epsilon=1e-3, delta=1e-3, svd_l=10, patch_size=4):
 
     Va = S + Gamma/rho
     Va_tilde, patch_locations = extract_sparse_patches(Va, patch_size)
@@ -93,7 +93,7 @@ def update_V(S, Gamma, rho, lambda_3,
 
     for t in range(max_it):
         d = s-(lambda_3/rho)*(1/(dold+epsilon))
-        d = d.clip(0)
+        d = np.maximum(d, 0)
         if np.abs(d-dold).max() <= delta:
             break
     V_tilde = u @ np.diag(d) @ vh
@@ -110,10 +110,11 @@ def update_B(Y, mask, S, L, Delta, rho):
 
     Ys = Y - phi(S, mask).reshape(M, N)
     C1 = rho*(L-Delta/rho)
-    C2 = np.zeros((M, N, F))
-    for f in range(F):
-        C2[:, :, f] = np.multiply(mask[:, :, f], Ys)
+    # C2 = np.zeros((M, N, F))
+    # for f in range(F):
+    #     C2[:, :, f] = np.multiply(mask[:, :, f], Ys)
 
+    C2 = np.multiply(mask, Ys[:, :, np.newaxis])
     C3 = C1 + C2
     B = np.zeros((M, N, F))
 
@@ -125,28 +126,27 @@ def update_B(Y, mask, S, L, Delta, rho):
     return B
 
 
-def ADMM(y, mask, rho=0.8, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3):
+def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
     M, N, F = mask.shape
 
     # Init
-    Y = y.reshape((M, N))
-    B = np.random.randint(0, 256, (M, N, F))
-    U = np.random.randint(0, 256, (M, N, F))
-    V = np.random.randint(0, 256, (M, N, F))
-    # X = phit(y, mask).reshape(M, N, F)
-    # U = X.copy()
-    # B = X.copy()
-    # V = X.copy()
+    Y = y.reshape((M, N)).astype(np.float64)
 
-    B_old = np.zeros_like(B)
-    U_old = np.zeros_like(U)
-    V_old = np.zeros_like(V)
+    U = np.zeros_like(mask, dtype=np.float64)
+    B = np.zeros_like(mask, dtype=np.float64)
+    V = np.zeros_like(mask, dtype=np.float64)
 
-    Theta = np.random.randint(0, 256, (M, N, F))
-    Delta = np.random.randint(0, 256, (M, N, F))
-    Gamma = np.random.randint(0, 256, (M, N, F))
+    B_old = np.zeros_like(B, dtype=np.float64)
+    U_old = np.zeros_like(U, dtype=np.float64)
+    V_old = np.zeros_like(V, dtype=np.float64)
+
+    Theta = np.zeros_like(mask, dtype=np.float64)
+    Delta = np.zeros_like(mask, dtype=np.float64)
+    Gamma = np.zeros_like(mask, dtype=np.float64)
+
+    crits = []
     for it in range(MAX_IT):
-        print(f"Starting iteration: {it},{rho=}")
+        print(f"Starting iteration: {it},rho={float(rho):.2f}")
         # Can be done in parallel
         # update S
         S = update_S(Y, B, mask, U, V, Theta, rho)
@@ -166,13 +166,9 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3):
         # Wait here if parallelizing
 
         # Update Dual Variables
-        Theta = Theta/rho + S - U
-        Gamma = Gamma/rho + S - V
-        Delta = Delta/rho + B - L
-
-        Theta *= rho
-        Gamma *= rho
-        Delta *= rho
+        Theta = Theta + rho*(S - U)
+        Gamma = Gamma + rho*(S - V)
+        Delta = Delta + rho*(B - L)
 
         primal_res = np.array([S-U, S-V, B-L])
         dual_res = -rho*np.array([U-U_old + V-V_old, B-B_old])
@@ -180,17 +176,26 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3):
         primal_res_norm = np.linalg.norm(primal_res)
         dual_res_norm = np.linalg.norm(dual_res)
 
-        # rho = rho * (primal_res_norm/dual_res_norm) ** 0.8
+        rho = rho * (primal_res_norm/dual_res_norm) ** 0.1
 
-        U_old = U
-        V_old = V
-        B_old = B
+        U_old = U.copy()
+        V_old = V.copy()
+        B_old = B.copy()
 
-    return S, L, U, V, B
+        V_t, _ = extract_sparse_patches(V, 16)
+        crit = 0.5 * \
+            np.linalg.matrix_norm(Y-phi(B+S, mask).reshape(M, N)).sum() + \
+            lambda_1*np.linalg.matrix_norm(U, ord=1).sum() +\
+            lambda_2 * np.linalg.norm(bar(L), ord="nuc").sum() +\
+            lambda_3 * np.linalg.norm(V_t, ord="nuc").sum()
+
+        crits.append(crit)
+        print(f"Criterion: {(crit):.2e}\n")
+    return S, L, U, V, B, crits
 
 
 if __name__ == "__main__":
-    x, y, mask = init(dataset="./datasets/traffic48_cacti.mat")
+    x, y, mask = init(dataset="./datasets/runner40_cacti.mat")
     M, N, F = mask.shape
     # phi, phit, phiphit = generate_phi(mask)
     # x = x.reshape(-1)
@@ -231,7 +236,27 @@ if __name__ == "__main__":
     # rho = 0.3
     # lambda_3 = 0.5
     # V = update_V(S, Gamma, rho, lambda_3, 3)
+    (y, mask, rho := 0.8, lambda_1 := 0.8,
+     lambda_2 := 0.8, lambda_3 := 0.8, MAX_IT := 3)
 
-    S, L, U, V, B = ADMM(y, mask, 0.8, MAX_IT=50)
-    visualize_cube((B+S)*255)
+    M, N, F = mask.shape
+
+    # Init
+    Y = y.reshape((M, N)).astype(np.float64)
+
+    U = np.zeros_like(mask, dtype=np.float64)
+    B = np.zeros_like(mask, dtype=np.float64)
+    V = np.zeros_like(mask, dtype=np.float64)
+
+    B_old = np.zeros_like(B, dtype=np.float64)
+    U_old = np.zeros_like(U, dtype=np.float64)
+    V_old = np.zeros_like(V, dtype=np.float64)
+
+    Theta = np.zeros_like(mask, dtype=np.float64)
+    Delta = np.zeros_like(mask, dtype=np.float64)
+    Gamma = np.zeros_like(mask, dtype=np.float64)
+    S, L, U, V, B, crits = ADMM(
+        Y, mask, rho=0.8, lambda_1=0.3, lambda_2=1, lambda_3=1, MAX_IT=50)
+    primal_res = np.array([S-U, S-V, B-L])
+    # visualize_cube((B+S))
     raise SystemExit

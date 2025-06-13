@@ -32,7 +32,7 @@ from skimage.util import view_as_windows
 #     return patches, locations
 
 
-@njit
+# @njit
 def extract_sparse_patches(X: NDArray[np.uint8], patch_size: int):
     M, N, F = X.shape
     p = patch_size

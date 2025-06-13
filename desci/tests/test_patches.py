@@ -75,7 +75,7 @@ def test_patch_extract_reconstruct(sample_data):
 def test_patch_extract_sparse(sample_data):
     x, (M, N, F) = sample_data
 
-    x = soft_thresh(x, 220)
+    # x = soft_thresh(x, 240)
 
     # Extract patches
     patch_size = 4
