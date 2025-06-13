@@ -893,7 +893,8 @@ model (zero-pixel shift).
     $(C_2)_{:, :, f} = M_f \odot Y_S$, $f = 1, \ldots, F$
     \State $C_3 = C_1 + C_2 \in \mathbb{R}^{M \times N\times F}$
     \State $B^{k+1} \in \mathbb{R}^{M\times N\times F}$ such that each slice
-    $B^{k+1}_{:, :, f} = \left[1\oslash(M_f^2 + \rho 1_{M\times N})\right] \odot C_3$,
+    $B^{k+1}_{:, :, f} = \left[1\oslash(M_f^2 + \rho 1_{M\times N})\right]
+    \odot {C_3}_{:, :, f}$,
     $f=1, \ldots, F$
   \end{algorithmic}
 \end{algorithm}
