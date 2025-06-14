@@ -28,6 +28,28 @@ def init(dataset: str):
     return x, y, mask
 
 
+def cvxpy_split(x: NDArray[np.uint8]):
+    """
+    """
+
+    H, W, B = x.shape
+    x_bar = x.reshape(H*W, B)
+
+    var_b = cp.Variable((H * W, B))
+    var_s = cp.Variable((H * W, B))
+
+    lambda_param = 0.1
+
+    r1 = cp.norm(var_b, 'nuc')
+    r2 = cp.norm(var_s.flatten('C'), 1)
+
+    objective = cp.Minimize(r1 + lambda_param*r2)
+    constraints = [x_bar == var_b + var_s]
+    problem = cp.Problem(objective, constraints)
+
+    return problem
+
+
 def cvxpy_tv_problem(x: NDArray[np.uint8], y: NDArray[np.uint16],
                      mask: NDArray[np.uint8]):
     """
@@ -64,12 +86,19 @@ def cvxpy_tv_problem(x: NDArray[np.uint8], y: NDArray[np.uint16],
 if __name__ == "__main__":
     x, y, mask = init(dataset="./datasets/traffic48_cacti.mat")
     H, W, B = mask.shape
+    x = x[:32, :32, :]
 
-    patch_size = 64
-    patches = extract_patches(x, patch_size)
-    print(f"Number of patches {patches.shape[1]}")
-    sim_patches = find_similar(patches[:, 25], patches, 8)
-
-    visualize_cube(sim_patches.reshape(patch_size, patch_size, -1))
+    problem = cvxpy_split(x)
+    problem.solve("SCS")
+    b = problem.variables()[0].value.reshape(32, 32, 8)
+    s = problem.variables()[1].value.reshape(32, 32, 8)
+    visualize_cube(b)
+    visualize_cube(s)
+    # patch_size = 64
+    # patches = extract_patches(x, patch_size)
+    # print(f"Number of patches {patches.shape[1]}")
+    # sim_patches = find_similar(patches[:, 25], patches, 8)
+    #
+    # visualize_cube(sim_patches.reshape(patch_size, patch_size, -1))
 
     raise SystemExit

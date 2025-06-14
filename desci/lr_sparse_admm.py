@@ -30,12 +30,12 @@ def bar(x: NDArray) -> NDArray:
 
 
 # @njit
-def update_S(Y, B, mask, U, V, Theta, rho):
+def update_S(Y, B, mask, U, V, Theta, Gamma, rho):
 
     M, N, F = mask.shape
 
     Y_b = Y-phi(B, mask).reshape((M, N))
-    C1 = rho*(U+V-1/rho * Theta)
+    C1 = rho*(U+V-1/rho * (Theta + Gamma))
     # C2 = np.zeros((M, N, F))
     # for f in range(F):
     #     C2[:, :, f] = np.multiply(mask[:, :, f], Y_b)
@@ -65,6 +65,7 @@ def update_L(B, Delta, rho, lambda_2, mask, delta=1e-3,
     for t in range(max_it):
         d = s-(lambda_2/rho)*(1/(dold+epsilon))
         d = np.maximum(d, 0)
+        dold = d
         if np.abs(d-dold).max() <= delta:
             break
 
@@ -94,6 +95,7 @@ def update_V(S, Gamma, rho, lambda_3,
     for t in range(max_it):
         d = s-(lambda_3/rho)*(1/(dold+epsilon))
         d = np.maximum(d, 0)
+        dold = d
         if np.abs(d-dold).max() <= delta:
             break
     V_tilde = u @ np.diag(d) @ vh
@@ -133,7 +135,7 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
     Y = y.reshape((M, N)).astype(np.float64)
 
     U = np.zeros_like(mask, dtype=np.float64)
-    B = np.zeros_like(mask, dtype=np.float64)
+    B = np.repeat(Y[:, :, np.newaxis], F, axis=2)
     V = np.zeros_like(mask, dtype=np.float64)
 
     B_old = np.zeros_like(B, dtype=np.float64)
@@ -149,7 +151,7 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
         print(f"Starting iteration: {it},rho={float(rho):.2f}")
         # Can be done in parallel
         # update S
-        S = update_S(Y, B, mask, U, V, Theta, rho)
+        S = update_S(Y, B, mask, U, V, Theta, Gamma, rho)
         # update L
         L = update_L(B, Delta, rho, lambda_2, mask)
 
@@ -176,7 +178,15 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
         primal_res_norm = np.linalg.norm(primal_res)
         dual_res_norm = np.linalg.norm(dual_res)
 
-        rho = rho * (primal_res_norm/dual_res_norm) ** 0.1
+        mu = 10
+        tau = 2
+
+        if primal_res_norm > mu*dual_res_norm:
+            rho = tau*rho
+        elif dual_res_norm > mu*primal_res_norm:
+            rho = rho/tau
+        else:
+            rho = rho
 
         U_old = U.copy()
         V_old = V.copy()
@@ -245,7 +255,7 @@ if __name__ == "__main__":
     Y = y.reshape((M, N)).astype(np.float64)
 
     U = np.zeros_like(mask, dtype=np.float64)
-    B = np.zeros_like(mask, dtype=np.float64)
+    B = np.repeat(Y[:, :, np.newaxis], F, axis=2)
     V = np.zeros_like(mask, dtype=np.float64)
 
     B_old = np.zeros_like(B, dtype=np.float64)
@@ -257,6 +267,6 @@ if __name__ == "__main__":
     Gamma = np.zeros_like(mask, dtype=np.float64)
     S, L, U, V, B, crits = ADMM(
         Y, mask, rho=0.8, lambda_1=0.3, lambda_2=1, lambda_3=1, MAX_IT=50)
-    primal_res = np.array([S-U, S-V, B-L])
+    # primal_res = np.array([S-U, S-V, B-L])
     # visualize_cube((B+S))
     raise SystemExit
