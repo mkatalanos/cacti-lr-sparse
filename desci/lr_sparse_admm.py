@@ -1,25 +1,26 @@
 from typing import Any, Callable, Tuple
 
 import numpy as np
-from main import init
 # from numba import njit
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
 from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
-from utils.physics import phi, phit
+from utils.physics import phi, phit,init
 from utils.visualize import visualize_cube
 
 
 # @njit
 def soft_thresh(x, lambda_):
-    return np.sign(x) * np.maximum(np.abs(x)-lambda_, 0)
+    x = x.astype(np.float64)
+    out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
+    return out
 
 
 # @njit
 def bar(x: NDArray) -> NDArray:
     # assert len(x.shape) == 3
     M, N, F = x.shape
-    x_bar = x.reshape(M*N, F)
+    x_bar = x.reshape(M * N, F)
 
     # x_bar = np.zeros((M*N, F))
     #
@@ -34,8 +35,8 @@ def update_S(Y, B, mask, U, V, Theta, Gamma, rho):
 
     M, N, F = mask.shape
 
-    Y_b = Y-phi(B, mask).reshape((M, N))
-    C1 = rho*(U+V-1/rho * (Theta + Gamma))
+    Y_b = Y - phi(B, mask).reshape((M, N))
+    C1 = rho * (U + V - 1 / rho * (Theta + Gamma))
     # C2 = np.zeros((M, N, F))
     # for f in range(F):
     #     C2[:, :, f] = np.multiply(mask[:, :, f], Y_b)
@@ -46,27 +47,28 @@ def update_S(Y, B, mask, U, V, Theta, Gamma, rho):
     mff = np.multiply(mask, mask)
 
     # for i in range(F):
-    S = np.multiply(np.divide(1, mff+2*rho), C3)
+    S = np.multiply(np.divide(1, mff + 2 * rho), C3)
 
     # S[:, :, f] = np.multiply(np.divide(1, mff[:, :, f]+2*rho), C3[:, :, f])
 
     return S
 
 
-def update_L(B, Delta, rho, lambda_2, mask, delta=1e-3,
-             epsilon=1e-3, max_it=1000, svd_l=30):
+def update_L(
+    B, Delta, rho, lambda_2, mask, delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=30
+):
     M, N, F = mask.shape
     La = B + Delta / rho
-    La_bar = La.reshape(M*N, F)
+    La_bar = La.reshape(M * N, F)
     u, s, vh = randomized_svd(La_bar, svd_l)
     # s is array of components
     dold = s.copy()
 
     for t in range(max_it):
-        d = s-(lambda_2/rho)*(1/(dold+epsilon))
+        d = s - (lambda_2 / rho) * (1 / (dold + epsilon))
         d = np.maximum(d, 0)
         dold = d
-        if np.abs(d-dold).max() <= delta:
+        if np.abs(d - dold).max() <= delta:
             break
 
     L_bar = u @ np.diag(d) @ vh
@@ -77,14 +79,15 @@ def update_L(B, Delta, rho, lambda_2, mask, delta=1e-3,
 
 # @njit
 def update_U(S, Theta, lambda_1, rho):
-    U_a = S + Theta/rho
-    return soft_thresh(U_a, lambda_1/rho)
+    U_a = S + Theta / rho
+    return soft_thresh(U_a, lambda_1 / rho)
 
 
-def update_V(S, Gamma, rho, lambda_3,
-             max_it=50, epsilon=1e-3, delta=1e-3, svd_l=10, patch_size=4):
+def update_V(
+    S, Gamma, rho, lambda_3, max_it=50, epsilon=1e-3, delta=1e-3, svd_l=10, patch_size=4
+):
 
-    Va = S + Gamma/rho
+    Va = S + Gamma / rho
     Va_tilde, patch_locations = extract_sparse_patches(Va, patch_size)
 
     u, s, vh = randomized_svd(Va_tilde, svd_l)
@@ -93,10 +96,10 @@ def update_V(S, Gamma, rho, lambda_3,
     dold = s.copy()
 
     for t in range(max_it):
-        d = s-(lambda_3/rho)*(1/(dold+epsilon))
+        d = s - (lambda_3 / rho) * (1 / (dold + epsilon))
         d = np.maximum(d, 0)
         dold = d
-        if np.abs(d-dold).max() <= delta:
+        if np.abs(d - dold).max() <= delta:
             break
     V_tilde = u @ np.diag(d) @ vh
 
@@ -111,7 +114,7 @@ def update_B(Y, mask, S, L, Delta, rho):
     M, N, F = mask.shape
 
     Ys = Y - phi(S, mask).reshape(M, N)
-    C1 = rho*(L-Delta/rho)
+    C1 = rho * (L - Delta / rho)
     # C2 = np.zeros((M, N, F))
     # for f in range(F):
     #     C2[:, :, f] = np.multiply(mask[:, :, f], Ys)
@@ -123,7 +126,7 @@ def update_B(Y, mask, S, L, Delta, rho):
     mff = np.multiply(mask, mask)
 
     # for i in range(F):
-    B = np.multiply(np.divide(1, mff+rho), C3)
+    B = np.multiply(np.divide(1, mff + rho), C3)
 
     return B
 
@@ -168,12 +171,12 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
         # Wait here if parallelizing
 
         # Update Dual Variables
-        Theta = Theta + rho*(S - U)
-        Gamma = Gamma + rho*(S - V)
-        Delta = Delta + rho*(B - L)
+        Theta = Theta + rho * (S - U)
+        Gamma = Gamma + rho * (S - V)
+        Delta = Delta + rho * (B - L)
 
-        primal_res = np.array([S-U, S-V, B-L])
-        dual_res = -rho*np.array([U-U_old + V-V_old, B-B_old])
+        primal_res = np.array([S - U, S - V, B - L])
+        dual_res = -rho * np.array([U - U_old + V - V_old, B - B_old])
 
         primal_res_norm = np.linalg.norm(primal_res)
         dual_res_norm = np.linalg.norm(dual_res)
@@ -181,10 +184,10 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
         mu = 10
         tau = 2
 
-        if primal_res_norm > mu*dual_res_norm:
-            rho = tau*rho
-        elif dual_res_norm > mu*primal_res_norm:
-            rho = rho/tau
+        if primal_res_norm > mu * dual_res_norm:
+            rho = tau * rho
+        elif dual_res_norm > mu * primal_res_norm:
+            rho = rho / tau
         else:
             rho = rho
 
@@ -193,11 +196,13 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
         B_old = B.copy()
 
         V_t, _ = extract_sparse_patches(V, 16)
-        crit = 0.5 * \
-            np.linalg.matrix_norm(Y-phi(B+S, mask).reshape(M, N)).sum() + \
-            lambda_1*np.linalg.matrix_norm(U, ord=1).sum() +\
-            lambda_2 * np.linalg.norm(bar(L), ord="nuc").sum() +\
-            lambda_3 * np.linalg.norm(V_t, ord="nuc").sum()
+        crit = (
+            0.5 * np.linalg.matrix_norm(Y -
+                                        phi(B + S, mask).reshape(M, N)).sum()
+            + lambda_1 * np.linalg.matrix_norm(U, ord=1).sum()
+            + lambda_2 * np.linalg.norm(bar(L), ord="nuc").sum()
+            + lambda_3 * np.linalg.norm(V_t, ord="nuc").sum()
+        )
 
         crits.append(crit)
         print(f"Criterion: {(crit):.2e}\n")
@@ -246,8 +251,15 @@ if __name__ == "__main__":
     # rho = 0.3
     # lambda_3 = 0.5
     # V = update_V(S, Gamma, rho, lambda_3, 3)
-    (y, mask, rho := 0.8, lambda_1 := 0.8,
-     lambda_2 := 0.8, lambda_3 := 0.8, MAX_IT := 3)
+    (
+        y,
+        mask,
+        rho := 0.8,
+        lambda_1 := 0.8,
+        lambda_2 := 0.8,
+        lambda_3 := 0.8,
+        MAX_IT := 3,
+    )
 
     M, N, F = mask.shape
 
@@ -266,7 +278,8 @@ if __name__ == "__main__":
     Delta = np.zeros_like(mask, dtype=np.float64)
     Gamma = np.zeros_like(mask, dtype=np.float64)
     S, L, U, V, B, crits = ADMM(
-        Y, mask, rho=0.8, lambda_1=0.3, lambda_2=1, lambda_3=1, MAX_IT=50)
+        Y, mask, rho=0.8, lambda_1=0.3, lambda_2=1, lambda_3=1, MAX_IT=50
+    )
     # primal_res = np.array([S-U, S-V, B-L])
     # visualize_cube((B+S))
     raise SystemExit

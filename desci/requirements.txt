@@ -1,5 +1,6 @@
 cvxpy
 ecos
+hdbscan
 ipython
 matplotlib
 numba
@@ -11,3 +12,4 @@ scikit-image
 scikit-learn
 scipy
 scs
+seaborn

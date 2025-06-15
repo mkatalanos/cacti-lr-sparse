@@ -18,40 +18,41 @@ def init(dataset: str):
     # Load data from Matlab file
     dataset = io.loadmat(dataset)
 
-    x = dataset['orig']
-    mask = dataset['mask']
-    meas = dataset['meas']
+    x = dataset["orig"]
+    mask = dataset["mask"]
+    meas = dataset["meas"]
     x, y = apply_cacti_mask_single(x, mask)
-    assert np.all(np.isclose(0, y-meas[:, :, 0])
-                  ), "Measured signal doesn't match dataset"
+    assert np.all(
+        np.isclose(0, y - meas[:, :, 0])
+    ), "Measured signal doesn't match dataset"
 
     return x, y, mask
 
 
 def cvxpy_split(x: NDArray[np.uint8]):
-    """
-    """
+    """ """
 
     H, W, B = x.shape
-    x_bar = x.reshape(H*W, B)
+    x_bar = x.reshape(H * W, B)
 
     var_b = cp.Variable((H * W, B))
     var_s = cp.Variable((H * W, B))
 
     lambda_param = 0.1
 
-    r1 = cp.norm(var_b, 'nuc')
-    r2 = cp.norm(var_s.flatten('C'), 1)
+    r1 = cp.norm(var_b, "nuc")
+    r2 = cp.norm(var_s.flatten("C"), 1)
 
-    objective = cp.Minimize(r1 + lambda_param*r2)
+    objective = cp.Minimize(r1 + lambda_param * r2)
     constraints = [x_bar == var_b + var_s]
     problem = cp.Problem(objective, constraints)
 
     return problem
 
 
-def cvxpy_tv_problem(x: NDArray[np.uint8], y: NDArray[np.uint16],
-                     mask: NDArray[np.uint8]):
+def cvxpy_tv_problem(
+    x: NDArray[np.uint8], y: NDArray[np.uint16], mask: NDArray[np.uint8]
+):
     """
     Define and solve a convexpy problem based on TV Norm
     |AX-y|_2^2 + lambda |X|_TV
@@ -74,7 +75,7 @@ def cvxpy_tv_problem(x: NDArray[np.uint8], y: NDArray[np.uint16],
 
     lambda_param = 1.0
 
-    data_fidelity = cp.sum_squares(y-A(var_x))
+    data_fidelity = cp.sum_squares(y - A(var_x))
     tv_reg = cp.sum([cp.tv(var_x[:, :, i]) for i in range(B)])
 
     objective = cp.Minimize(0.5 * data_fidelity + lambda_param * tv_reg)

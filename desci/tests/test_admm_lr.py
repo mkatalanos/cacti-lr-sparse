@@ -24,10 +24,10 @@ def test_S_update_run(sample_data):
     U = B.copy()
     V = B.copy()
     Theta = B.copy()
+    Gamma = B.copy()
     rho = 0.3
 
-    S = update_S(Y, B, mask, U, V, Theta, rho)
-
+    S = update_S(Y, B, mask, U, V, Theta, Gamma, rho)
     assert S.shape == (M, N, F), "Shape of S must be MxNxF"
 
 

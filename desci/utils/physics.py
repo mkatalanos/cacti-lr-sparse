@@ -5,6 +5,27 @@ import numpy as np
 import scipy.sparse as sp
 # from numba import jit, njit
 from numpy.typing import NDArray
+from scipy import io
+
+
+def init(dataset: str):
+    # Generate Measurement operator
+
+    # TODO: Waiting for Shubham to generate own masks
+    # according to device physics
+
+    # Load data from Matlab file
+    dataset = io.loadmat(dataset)
+
+    x = dataset["orig"]
+    mask = dataset["mask"]
+    meas = dataset["meas"]
+    x, y = apply_cacti_mask_single(x, mask)
+    # assert np.all(
+    #     np.isclose(0, y - meas[:, :, 0])
+    # ), "Measured signal doesn't match dataset"
+
+    return x, y, mask
 
 
 # @njit
@@ -26,15 +47,13 @@ def phit(y, mask):
     """
     H, W, T = mask.shape
     y = y.reshape(H, W)
-    x = np.divide(y[:, :, None], mask)
-    x[np.isnan(x)] = 0
-    x[np.isinf(x)] = 0
-    x /= x.max()
-    x *= 255
+    x = np.repeat(y[:, :, np.newaxis], T, axis=2)
     return x.reshape(-1)
 
 
-def generate_phi(mask: NDArray[np.uint8]) -> Tuple[Callable, Callable, NDArray[np.uint8]]:
+def generate_phi(
+    mask: NDArray[np.uint8],
+) -> Tuple[Callable, Callable, NDArray[np.uint8]]:
     """
     Generates two functions that take as argument a vector and return
     Φχ
@@ -47,23 +66,19 @@ def generate_phi(mask: NDArray[np.uint8]) -> Tuple[Callable, Callable, NDArray[n
         return np.multiply(mask, x.reshape(H, W, -1)).sum(axis=2).reshape(-1)
 
     def phity(y):
+        H, W, T = mask.shape
         y = y.reshape(H, W)
-        x = mask * y[:, :, None]
+        x = np.repeat(y[:, :, np.newaxis], T, axis=2)
         return x.reshape(-1)
 
-    # H, W, B = mask.shape
-    # flat_mask = mask.reshape(-1, B)
-    #
-    # PhiPhit = np.dot(flat_mask, flat_mask.T)
-
-    # PhiPhit = (mask**2).sum(axis=2).reshape(-1)
     PhiPhit = mask.sum(axis=2).reshape(-1)
 
     return phix, phity, PhiPhit
 
 
-def apply_cacti_mask(x: NDArray[np.uint8], mask: NDArray[np.uint8]) \
-        -> NDArray[np.uint16]:
+def apply_cacti_mask(
+    x: NDArray[np.uint8], mask: NDArray[np.uint8]
+) -> NDArray[np.uint16]:
     """
     Applies a proper CACTI mask in chunks
     """
@@ -73,16 +88,17 @@ def apply_cacti_mask(x: NDArray[np.uint8], mask: NDArray[np.uint8]) \
     assert H == Hm, "Height dimensions must match"
     assert W == Wm, "Width dimensions must match"
 
-    B_T = B//T
+    B_T = B // T
     y = np.zeros((H, W, B_T), dtype=np.uint16)
     for i in range(B_T):
-        y[:, :, i] = np.sum(np.split(x, B_T, axis=2)[i]*mask, axis=2)
+        y[:, :, i] = np.sum(np.split(x, B_T, axis=2)[i] * mask, axis=2)
 
     return y
 
 
-def apply_cacti_mask_single(x: NDArray[np.uint8], mask: NDArray[np.uint8]) \
-        -> Tuple[NDArray[np.uint8], NDArray[np.uint16]]:
+def apply_cacti_mask_single(
+    x: NDArray[np.uint8], mask: NDArray[np.uint8]
+) -> Tuple[NDArray[np.uint8], NDArray[np.uint16]]:
     """
     Applies a cacti mask to the first mask length chunk.
     """
@@ -98,8 +114,7 @@ def apply_cacti_mask_single(x: NDArray[np.uint8], mask: NDArray[np.uint8]) \
     return x_trunc, y
 
 
-def A(x: cp.Variable, mask: NDArray[np.uint8]) \
-        -> cp.Expression:
+def A(x: cp.Variable, mask: NDArray[np.uint8]) -> cp.Expression:
     """
     Applies a cacti mask to the first mask length chunk.
     """
@@ -118,7 +133,7 @@ def A(x: cp.Variable, mask: NDArray[np.uint8]) \
 def phi_from_mask(mask: NDArray[np.uint8]):
     H, W, B = mask.shape
 
-    mask_flat = mask.reshape(H*W, B)
+    mask_flat = mask.reshape(H * W, B)
     diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8)
                      for b in range(B)]
 
