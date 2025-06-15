@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 from lr_sparse_admm import soft_thresh
-from utils.patches import (extract_patches, extract_sparse_patches,
-                           reconstruct_from_patches,
-                           reconstruct_sparse_patches)
+from utils.patches import (
+    extract_patches,
+    extract_sparse_patches,
+    reconstruct_from_patches,
+    reconstruct_sparse_patches,
+)
 
 
 @pytest.fixture

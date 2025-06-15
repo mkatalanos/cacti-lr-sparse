@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
-from utils.physics import (apply_cacti_mask, apply_cacti_mask_single,
-                           generate_phi, phi, phit)
+from utils.physics import (
+    apply_cacti_mask,
+    apply_cacti_mask_single,
+    generate_phi,
+    phi,
+    phit,
+)
 
 
 @pytest.fixture

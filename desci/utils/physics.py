@@ -3,6 +3,7 @@ from typing import Callable, Tuple
 import cvxpy as cp
 import numpy as np
 import scipy.sparse as sp
+
 # from numba import jit, njit
 from numpy.typing import NDArray
 from scipy import io
@@ -134,8 +135,7 @@ def phi_from_mask(mask: NDArray[np.uint8]):
     H, W, B = mask.shape
 
     mask_flat = mask.reshape(H * W, B)
-    diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8)
-                     for b in range(B)]
+    diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8) for b in range(B)]
 
     Phi = sp.hstack(diag_matrices, format="coo", dtype=np.uint8)
 

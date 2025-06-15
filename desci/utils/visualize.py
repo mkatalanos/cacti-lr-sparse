@@ -11,7 +11,7 @@ def visualize_cube(img):
     side_by_side = np.zeros((H, W * F), dtype=np.uint8)
 
     for i in range(F):
-        side_by_side[:, i * W: (i + 1) * W] = img[:, :, i]
+        side_by_side[:, i * W : (i + 1) * W] = img[:, :, i]
 
     Image.fromarray(side_by_side).show()
 
@@ -35,10 +35,10 @@ def visualize_clusters(clusters):
     # Finding smallest common patch count
     T = np.array([cluster.shape for cluster in clusters]).min(axis=0)[1]
 
-    X = np.zeros((p*cluster_count, p*T))
+    X = np.zeros((p * cluster_count, p * T))
     for row, cluster in enumerate(clusters):
         patches = cluster.reshape(p, p, -1)[:, :, :T]
         for col in range(T):
             patch = patches[:, :, col]
-            X[row*p:(row+1)*p, col * p:(col+1)*p] = patch
+            X[row * p : (row + 1) * p, col * p : (col + 1) * p] = patch
     Image.fromarray(X).show()

@@ -1,11 +1,12 @@
 from typing import Any, Callable, Tuple
 
 import numpy as np
+
 # from numba import njit
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
 from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
-from utils.physics import phi, phit,init
+from utils.physics import phi, phit, init
 from utils.visualize import visualize_cube
 
 
@@ -197,8 +198,7 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
 
         V_t, _ = extract_sparse_patches(V, 16)
         crit = (
-            0.5 * np.linalg.matrix_norm(Y -
-                                        phi(B + S, mask).reshape(M, N)).sum()
+            0.5 * np.linalg.matrix_norm(Y - phi(B + S, mask).reshape(M, N)).sum()
             + lambda_1 * np.linalg.matrix_norm(U, ord=1).sum()
             + lambda_2 * np.linalg.norm(bar(L), ord="nuc").sum()
             + lambda_3 * np.linalg.norm(V_t, ord="nuc").sum()

@@ -4,8 +4,7 @@ import scipy.io as io
 import scipy.sparse as sp
 from numpy.typing import NDArray
 from utils.patches import extract_patches, find_similar
-from utils.physics import (apply_cacti_mask, apply_cacti_mask_single,
-                           phi_from_mask)
+from utils.physics import apply_cacti_mask, apply_cacti_mask_single, phi_from_mask
 from utils.visualize import visualize_cube
 
 
