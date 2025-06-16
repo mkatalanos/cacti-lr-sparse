@@ -86,14 +86,13 @@ def cvxpy_tv_problem(
 if __name__ == "__main__":
     x, y, mask = init(dataset="./datasets/traffic48_cacti.mat")
     H, W, B = mask.shape
-    x = x[:32, :32, :]
-
-    problem = cvxpy_split(x)
-    problem.solve("SCS")
-    b = problem.variables()[0].value.reshape(32, 32, 8)
-    s = problem.variables()[1].value.reshape(32, 32, 8)
-    visualize_cube(b)
-    visualize_cube(s)
+    #
+    # problem = cvxpy_split(x)
+    # problem.solve("SCS")
+    # b = problem.variables()[0].value.reshape(32, 32, 8)
+    # s = problem.variables()[1].value.reshape(32, 32, 8)
+    # visualize_cube(b)
+    # visualize_cube(s)
     # patch_size = 64
     # patches = extract_patches(x, patch_size)
     # print(f"Number of patches {patches.shape[1]}")

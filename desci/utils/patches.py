@@ -40,14 +40,14 @@ from utils.visualize import visualize_cube, visualize_patches, visualize_cluster
 
 
 # @njit
-def extract_sparse_patches(X: NDArray[np.uint8], patch_size: int):
+def extract_sparse_patches(X: NDArray[np.uint8], patch_size: int, stride_ratio: int = 1):
     # Implementation that uses preallocated memory
     M, N, F = X.shape
     p = patch_size
     P = p * p
 
     L = 0
-    stride = p
+    stride = p//stride_ratio
 
     patches = []
     locations = []
@@ -58,7 +58,7 @@ def extract_sparse_patches(X: NDArray[np.uint8], patch_size: int):
         # Extract patches
         for i in range(0, M - p + 1, stride):
             for j in range(0, N - p + 1, stride):
-                patch = frame[i : i + p, j : j + p]
+                patch = frame[i: i + p, j: j + p]
                 # Check if non-empty
                 if np.any(patch):
                     # Reshape and add if needed
@@ -105,7 +105,7 @@ def reconstruct_sparse_patches(
     X = np.zeros(shape)
 
     for patch, (i, j, f) in zip(X_tilde.T, locations):
-        X[i : i + p, j : j + p, f] = patch.reshape(p, p)
+        X[i: i + p, j: j + p, f] = patch.reshape(p, p)
 
     return X
 
@@ -135,7 +135,7 @@ def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
         idx = 0
         for i in range(0, M, p):
             for j in range(0, N, p):
-                X_rec[i : i + p, j : j + p, f] = patches_reshaped[idx]
+                X_rec[i: i + p, j: j + p, f] = patches_reshaped[idx]
                 idx += 1
 
     return X_rec
@@ -206,6 +206,6 @@ if __name__ == "__main__":
     # X_Tilde, locations = extract_sparse_patches(X, 16)
 
     # x = np.array(Image.open("datasets/bear.png"))[:, :, :3]
-    x, y, mask = init("./datasets/kobe32_cacti.mat")
+    x, y, mask = init("./datasets/traffic48_cacti.mat")
     patches, locs = extract_sparse_patches(x, 64)
-    clusters = cluster_patches(patches, ssim=False)
+    # clusters = cluster_patches(patches, ssim=False)
