@@ -217,10 +217,10 @@ Problem~\eqref{eq:prob} is thus equivalent to
 \begin{align}
   \label{eq:reformulation}
   \begin{array}[t]{cl}
-    \underset{X, S, U, V, B, L}{\text{minimize}}
+    \underset{S, U, V, B, L}{\text{minimize}}
     &
     \frac{1}{2}
-    \big\|Y - \mathcal{H}(X)\big\|_F^2
+    \big\|Y - \mathcal{H}(B + S)\big\|_F^2
     +
     \lambda_1 \big\|U\big\|_1
     +
@@ -235,17 +235,15 @@ Problem~\eqref{eq:prob} is thus equivalent to
     & S = V
     \\
     & 
-    B = L
-    \\
-    & X = B + V\,.
+    B = L\,.
   \end{array}
 \end{align}
 The augmented Lagrangian of~\eqref{eq:reformulation} is
 \begin{multline*}
-  L_{\rho}(X, S, U, V, B, L\, ;\, \Theta, \Gamma, \Delta, \Lambda) 
+  L_{\rho}(S, U, V, B, L\, ;\, \Theta, \Gamma, \Delta) 
   = 
   \frac{1}{2}
-  \big\|Y - \mathcal{H}(X)\big\|_F^2
+  \big\|Y - \mathcal{H}(B + S)\big\|_F^2
   +
   \lambda_1 \big\|U\big\|_1
   +
@@ -260,8 +258,6 @@ The augmented Lagrangian of~\eqref{eq:reformulation} is
   +
   \langle\Delta, B - L\rangle
   +
-  \langle\Lambda, X - B - V\rangle
-  +
   \frac{\rho}{2}
   \|S - U\|_{F}^2
   +
@@ -269,56 +265,40 @@ The augmented Lagrangian of~\eqref{eq:reformulation} is
   \|S - V\|_{F}^2
   +
   \frac{\rho}{2}
-  \|B - L\|_{F}^2
-  \\
-  +
-  \frac{\rho}{2}
-  \|X - B - V\|_{F}^2\,,
+  \|B - L\|_{F}^2\,,
 \end{multline*}
-where we associated the dual variables $\Theta, \Gamma, \Delta, \Lambda\in
-\mathbb{R}^{M\times N\times F}$ with the 1st, 2nd, 3rd, and 4th constraints
+where we associated the dual variables $\Theta, \Gamma, \Delta \in
+\mathbb{R}^{M\times N\times F}$ with the 1st, 2nd, and 3rd constraints
 of~\eqref{eq:reformulation}.
 
-We group the primal variables into $(X, S, L)$ and $(U, V, B)$. ADMM iteratively
+We group the primal variables into $(S, L)$ and $(U, V, B)$. ADMM iteratively
 minimizes $L_\rho$ w.r.t.\ the first set of variables and, then, with these
 variables fixed at the new value, minimizes $L_\rho$ w.r.t.\ the second set of
 variables. Finally, it updates all the Lagrange multipliers.
 
 More concretely, starting with arbitrary $\big(U^0, V^0, B^0\big)$ and
-$\big(\Theta^0, \Gamma^0, \Delta^0, \Lambda^0\big)$, ADMM iterates for $k = 0, 1, \ldots$, 
+$\big(\Theta^0, \Gamma^0, \Delta^0\big)$, ADMM iterates for $k = 0, 1, \ldots$, 
 \begin{subequations}
   \label{eq:admm_applied}
   \begin{align}
-    (X^{k+1}, S^{k+1}, L^{k+1})
+    (S^{k+1}, L^{k+1})
       &=
-      \underset{X, S, L}{\arg\min}\,\,\,
+      \underset{S, L}{\arg\min}\,\,\,
       \bigg[
       \frac{1}{2}
-      \big\|Y - \mathcal{H}(X)\big\|_F^2
+      \big\|Y - \mathcal{H}(B^k + S)\big\|_F^2
       +
-      \langle\Lambda^k, X - B^k - V^k\rangle
+      \langle\Theta^k, S - U^k\rangle
       +
       \frac{\rho}{2}
-      \|X - B^k - V^k\|_{F}^2
-      \bigg]
-      \notag
-      \\
-      &\qquad
+      \|S - U^k\|_{F}^2
       +
-      \bigg[
-        \langle\Theta^k, S - U^k\rangle
-        +
-        \langle\Gamma^k, S - V^k\rangle
-        +
-        \frac{\rho}{2}
-        \|S - U^k\|_{F}^2
-        +
-        \frac{\rho}{2}
-        \|S - V^k\|_{F}^2
+      \frac{\rho}{2}
+      \|S - V^k\|_{F}^2
       \bigg]
       \notag
       \\
-      &\qquad
+      &\qquad\qquad\qquad\qquad\qquad
       +
       \bigg[
         \lambda_2 \big\|\overline{L}\big\|_{\star}
@@ -341,33 +321,31 @@ $\big(\Theta^0, \Gamma^0, \Delta^0, \Lambda^0\big)$, ADMM iterates for $k = 0, 1
         \frac{\rho}{2}
         \|S^{k+1} - U\|_{F}^2
       \bigg]
-      \notag
-      \\
-      &\qquad
       +
       \bigg[
         \lambda_3 \big\|\widetilde{V}\big\|_{\star}
+        \notag
+        \\
+      &\qquad\qquad\qquad\qquad\qquad
         +
         \langle\Gamma^k, S^{k+1} - V\rangle
         +
-        \langle\Delta^k, B - L^{k+1}\rangle
-        +
-        \langle\Lambda^k, X^{k+1} - B - V\rangle
-        \notag
-        \\
-      &\qquad
-        +
         \frac{\rho}{2}
         \|S^{k+1} - V\|_{F}^2
-        +
-        \frac{\rho}{2}
-        \|B - L^{k+1}\|_{F}^2
-        +
-        \frac{\rho}{2}
-        \|X^{k+1} - B - V\|_{F}^2
       \bigg]
         \notag
         \\
+      &\qquad\qquad
+      +
+      \bigg[
+        \frac{1}{2}
+        \big\|Y - \mathcal{H}(B + S^{k+1})\big\|_F^2
+        +
+        \langle\Delta^k, B - L^{k+1}\rangle
+        +
+        \frac{\rho}{2}
+        \|B - L^{k+1}\|_{F}^2
+      \bigg]
       \label{eq:admm_applied_uvb}
       \\
       \Theta^{k+1} &= \Theta^k +  \rho(S^{k+1} - U^{k+1})
@@ -378,83 +356,90 @@ $\big(\Theta^0, \Gamma^0, \Delta^0, \Lambda^0\big)$, ADMM iterates for $k = 0, 1
       \\
       \Delta^{k+1} &= \Delta^k + \rho(B^{k+1} - L^{k+1})\,.
       \label{eq:admm_applied_lagrangedelta}
-      \\
-      \Lambda^{k+1} &= \Lambda^k + \rho(X^{k+1} - B^{k+1} - V^{k+1})\,.
-      \label{eq:admm_applied_lagrangelambda}
   \end{align}
 \end{subequations}
-We can see that~\eqref{eq:admm_applied_sl} decomposes into three independent
-problems, in $X$, $S$, and $L$, that can be solved in parallel. Also,
-\eqref{eq:admm_applied_uvb} decomposes into two independent problems, in $U$,
-and in $(V, B)$, that can be solved in parallel. We now elaborate on how to solve
+We can see that~\eqref{eq:admm_applied_sl} decomposes into two independent
+problems, in $S$ and in $L$, that can be solved in parallel. Also,
+\eqref{eq:admm_applied_uvb} decomposes into three independent problems, in $U$,
+$V$, and $B$, that can be solved in parallel. We now elaborate on how to solve
 each of these problems.
 
-\mypar{Updating $\bm{X}$}
-The problem in $X$ in~\eqref{eq:admm_applied_sl} can be rewritten as
+\mypar{Updating $\bm{S}$}
+The problem in $S$ in~\eqref{eq:admm_applied_sl} can be rewritten as
 \begin{align}
   &
-  \underset{X}{\text{minimize}}\,\,\,
+  \underset{S}{\text{minimize}}\,\,\,
   \frac{1}{2}
-  \big\|Y - \mathcal{H}(X)\big\|_F^2
+  \big\|Y - \mathcal{H}(B^k + S)\big\|_F^2
   +
-  \langle\Lambda^k, X - B^{k} - V^{k}\rangle
+  \langle\Theta^k, S - U^k\rangle
   +
   \frac{\rho}{2}
-  \big\|X - B^k - V^k\big\|_{F}^2
+  \big\|S - U^k\big\|_{F}^2
+  +
+  \frac{\rho}{2}
+  \big\|S - V^k\big\|_{F}^2
   \notag
   \\[0.2cm]
   \Longleftrightarrow\qquad &
-  \underset{X}{\text{minimize}}\,\,\,
+  \underset{S}{\text{minimize}}\,\,\,
   \frac{1}{2}
-  \big\|Y - \mathcal{H}(X) \big\|_F^2
+  \big\|(Y - \mathcal{H}(B^k)) - \mathcal{H}(S)\big\|_F^2
   +
-  \frac{\rho}{2}
-  \Big\| X - \big(B^k + V^k - \frac{1}{\rho}\Lambda^k\big) \Big\|_F^2\,.
-  \label{eq:probx1}
+  \rho
+  \bigg\|
+  S - \frac{1}{2}\Big((U^k + V^k) - \frac{1}{\rho}\Theta^k\Big)
+  \bigg\|_F^2\,.
+  \label{eq:probs1}
 \end{align}
-Defining $y := \text{vec}(Y) \in \mathbb{R}^{MQ}$ and
+Defining
 \begin{align*}
-  X_a &:= B^k + V^k - \frac{1}{\rho}\Lambda^k \in \mathbb{R}^{M \times N \times F}
+  Y_B &:= Y - \mathcal{H}(B^k) \in \mathbb{R}^{M\times Q}
+      &
+  S_a &:= \frac{1}{2}\Big((U^k + V^k) - \frac{1}{\rho}\Theta^k\Big) \in
+  \mathbb{R}^{M \times N \times F}
   \\
-  x_a &:= \text{vec}(X_a) \in \mathbb{R}^{MNF}\,,
+  y_b &= \text{vec}(Y_B) \in \mathbb{R}^{MQ}
+    &
+  s_a &:= \text{vec}(S_a) \in \mathbb{R}^{MNF}\,,
 \end{align*}
 where the vectorization of a tensor follows a specific order (described below),
-problem~\eqref{eq:probx1} can be written in a vector format:
+problem~\eqref{eq:probs1} can be written in a vector format:
 \begin{align*}
-  \underset{x \in \mathbb{R}^{MNF}}{\text{minimize}}\,\,\,
+  \underset{s \in \mathbb{R}^{MNF}}{\text{minimize}}\,\,\,
   \frac{1}{2}
-  \|y - Hx\|_2^2
+  \|y_b - Hs\|_2^2
   +
-  \frac{\rho}{2}
-  \| x - x_a\|_2^2\,,
+  \rho
+  \| s - s_a\|_2^2\,,
 \end{align*}
 where $H \in \mathbb{R}^{MQ \times MNF}$ is a matricial representation of
-$\mathcal{H}$. Taking the gradient w.r.t.\ $x$ and equating it to zero, we
-obtain a closed-form solution for updating $X$:
+$\mathcal{H}$. Taking the gradient w.r.t.\ $s$ and equating it to zero, we
+obtain a closed-form solution for updating $S$:
 \begin{align}
-  x^{k+1}
+  s^{k+1}
   =
-  \left(H^\top H + \rho I_{MNF \times MNF}\right)^{-1}
-  \left[H^\top y + \rho x_a\right]\,,
-  \label{eq:probxclosedformvec}
+  \left(H^\top H + 2\rho I_{MNF \times MNF}\right)^{-1}
+  \left[H^\top y_b + 2\rho s_a\right]\,,
+  \label{eq:probsclosedformvec}
 \end{align}
 where $I_{MNF \times MNF}$ is the identity matrix. 
 
 In practice, we should not compute the matrices
-in~\eqref{eq:probxclosedformvec} explicitly. To see how to perform the
-operations in~\eqref{eq:probxclosedformvec}, let us consider the simple case of
+in~\eqref{eq:probsclosedformvec} explicitly. To see how to perform the
+operations in~\eqref{eq:probsclosedformvec}, let us consider the simple case of
 conventional snapshot compressive imaging, i.e., no pixel-shifts. In this case,
-$Y \in \mathbb{R}^{M\times N}$. Let $Z \in \mathbb{R}^{M \times N\times F}$ be
+$Y \in \mathbb{R}^{M\times N}$. Let $X \in \mathbb{R}^{M \times N\times F}$ be
 a generic tensor and let $\mathcal{H}$ apply mask $M_f \in \mathbb{R}^{M\times
 N}$ to frame $f$. In other words, 
 \begin{align*}
   &\qquad
-  Y = \sum_{f=1}^{F} M_f \odot Z_{:,:,f} 
+  Y = \sum_{f=1}^{F} M_f \odot X_{:,:,f} 
   \\
   \Longleftrightarrow &\qquad
   \text{vec}(Y)
   =
-  \sum_{f=1}^{F} \text{vec}(M_f) \odot \text{vec}(Z_{:,:,f})
+  \sum_{f=1}^{F} \text{vec}(M_f) \odot \text{vec}(X_{:,:,f})
   \\
   \Longleftrightarrow &\qquad
   \underbrace{\text{vec}(Y)}_{y}
@@ -466,18 +451,18 @@ N}$ to frame $f$. In other words,
   }_{H}
   \underbrace{
   \begin{bmatrix}
-    \text{vec}(Z_{:, :, 1})
+    \text{vec}(X_{:, :, 1})
     \\
     \vdots
     \\
-    \text{vec}(Z_{:, :, F})
-  \end{bmatrix}}_{z}\,,
+    \text{vec}(X_{:, :, F})
+  \end{bmatrix}}_{x}\,,
 \end{align*}
 where $\odot$ represents the pointwise (Hadamard) product, $m_f :=
 \text{vec}(M_f)$, and $\text{Diag}(\cdot)$ represents a diagonal matrix with a
 specified vector in the diagonal. The matrix $H$ is indicated as well as the
 vectorization of the tensor $X$. We can now see that $H^\top H$
-in~\eqref{eq:probxclosedformvec} will be a diagonal matrix:
+in~\eqref{eq:probsclosedformvec} will be a diagonal matrix:
 \begin{align*}
   H^\top H = \text{Diag}\left(\begin{bmatrix}
     m_1^2 \\ \vdots  \\m_F^2
@@ -485,23 +470,24 @@ in~\eqref{eq:probxclosedformvec} will be a diagonal matrix:
 \end{align*}
 where $m_f^2 := m_f \odot m_f$ denotes the vector $m_f$ with squared entries.
 Undoing the vectorization operations, we can compute the result
-of~\eqref{eq:probxclosedformvec} from right to left according to
-Algorithm~\ref{alg:updateX}. In step~\ref{subAlg:lastStep}, $\oslash$ denotes
+of~\eqref{eq:probsclosedformvec} from right to left according to
+Algorithm~\ref{alg:updateS}. In step~\ref{subAlg:lastStep}, $\oslash$ denotes
 the elementwise division, and $1_{M\times N}$ the matrix of all-ones in
 $\mathbb{R}^{M\times N}$.
 
 \begin{algorithm}
-  \caption{Update of $X$ in~\eqref{eq:probxclosedformvec} for
+  \caption{Update of $S$ in~\eqref{eq:probsclosedformvec} for
   conventional SCI}
-  \label{alg:updateX}
+  \label{alg:updateS}
   \begin{algorithmic}[1]
   %\small
-    \State $C_1 = \rho (B^k + V^k - \frac{1}{\rho}\Lambda^k) \in \mathbb{R}^{M\times N\times F}$
+    \State $Y_B = Y - \mathcal{H}(B^k) \in \mathbb{R}^{M\times N}$
+    \State $C_1 = \rho (U^k + V^k - \frac{1}{\rho}\Theta^k) \in \mathbb{R}^{M\times N\times F}$
     \State $C_2 \in \mathbb{R}^{M\times N\times F}$ such that each slice
-    $(C_2)_{:, :, f} = M_f \odot Y$, $f = 1, \ldots, F$
+    $(C_2)_{:, :, f} = M_f \odot Y_B$, $f = 1, \ldots, F$
     \State $C_3 = C_1 + C_2 \in \mathbb{R}^{M \times N\times F}$
-    \State $X^{k+1} \in \mathbb{R}^{M\times N\times F}$ such that each slice
-    $X^{k+1}_{:, :, f} = \left[1\oslash(M_f^2 + \rho 1_{M\times N})\right]
+    \State $S^{k+1} \in \mathbb{R}^{M\times N\times F}$ such that each slice
+    $S^{k+1}_{:, :, f} = \left[1\oslash(M_f^2 + 2\rho 1_{M\times N})\right]
     \odot {C_3}_{:, :, f}$,
     $f=1, \ldots, F$
     \label{subAlg:lastStep}
@@ -509,33 +495,11 @@ $\mathbb{R}^{M\times N}$.
 \end{algorithm}
 This code can run fast if
 \begin{itemize}
-  \item Memory to store $C_1, C_2, C_3, X^{k+1}$ is preallocated
+  \item Memory to store $Y_B, C_1, C_2, C_3, S^{k+1}$ is preallocated
 
   \item Operations in each step are parallelized, e.g., in a GPU.
 \end{itemize}
-The total operation count is roughly $8MNF$ FLOPs.
-
-\mypar{Updating $\bm{S}$}
-The problem in $S$ in~\eqref{eq:admm_applied_sl} is
-\begin{align*}
-  S^{k+1} 
-  &=
-  \underset{S}{\arg\min} \,\,\,
-  \langle\Theta^k, S - U^k\rangle
-  +
-  \langle\Gamma^k, S - V^k\rangle
-  +
-  \frac{\rho}{2}
-  \|S - U^k\|_{F}^2
-  +
-  \frac{\rho}{2}
-  \|S - V^k\|_{F}^2
-  \\ 
-  &=
-  \frac{1}{2}
-  \Big(U^k + V^k - \frac{1}{\rho}\Theta^k - \frac{1}{\rho}\Gamma^k\Big)\,,
-\end{align*}
-where we simply equated the derivative w.r.t.\ $S$ to zero. 
+The total operation count is roughly $13MNF$ FLOPs.
 
 \mypar{Updating $\bm{L}$}
 The problem in $L$ in~\eqref{eq:admm_applied_sl} can be rewritten as
@@ -701,7 +665,7 @@ My suggestion is to implement the iterations
 in~\eqref{eq:probLReweightedupdate} recursively using, for example $\epsilon =
 10^{-3}$. In my experience, these requires from $3$ to $40$ iterations to
 converge. The resulting algorithm is described in Algorithm~\ref{alg:updateL}.
-Note that Algorithms~\ref{alg:updateX} and~\ref{alg:updateL} can be run in
+Note that Algorithms~\ref{alg:updateS} and~\ref{alg:updateL} can be run in
 parallel.
 
 \begin{algorithm}
@@ -789,36 +753,11 @@ done in Algorithm~\ref{alg:updateU}.
   \end{algorithmic}
 \end{algorithm}
 
-\mypar{Updating $\bm{(V, B)}$}
-The terms in~\eqref{eq:admm_applied_uvb} that depend on $V$ and $B$ are not
-decoupled, so they must be optimized simultaneously. We notice, however, that
-minimization w.r.t.\ $B$ has a closed-form solution, so we can first minimize
-w.r.t.\ $B$, then w.r.t.\ $V$:
-\begin{align}
-  (V^{k+1}, B^{k+1})
-  &=
-  \underset{V, B}{\arg\min}\,\,\,
-  \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-  +
-  \langle\Gamma^k, S^{k+1} - V\rangle
-  +
-  \langle\Delta^k, B - L^{k+1}\rangle
-  +
-  \langle\Lambda^k, X^{k+1} - B - V\rangle
-  \notag
-  \\
-  &\qquad
-  +
-  \frac{\rho}{2}
-  \|S^{k+1} - V\|_{F}^2
-  +
-  \frac{\rho}{2}
-  \|B - L^{k+1}\|_{F}^2
-  +
-  \frac{\rho}{2}
-  \|X^{k+1} - B - V\|_{F}^2
-  \label{eq:updatevb1}
-  \\
+\mypar{Updating $\bm{V}$}
+To update $V$ in~\eqref{eq:admm_applied_uvb}, we rewrite the corresponding
+problem as
+\begin{align*}
+  V^{k+1}
   &=
   \underset{V}{\arg\min}\,\,\,
   \lambda_3 \big\|\widetilde{V}\big\|_{\star}
@@ -827,51 +766,20 @@ w.r.t.\ $B$, then w.r.t.\ $V$:
   +
   \frac{\rho}{2}
   \|S^{k+1} - V\|_{F}^2
-  -
-  \frac{1}{2}
-  \langle \Delta^k + \Lambda^k, V\rangle
-  \notag
-  \\
-  &\quad
-  +
-  \frac{\rho}{4}
-  \Big\|\big(X^{k+1} + \frac{1}{\rho}\Lambda^k - \frac{1}{\rho}\Delta^k - L^{k+1}\big)
-  - V\Big\|_F^2
-  \label{eq:updatevb2}
   \\
   &=
   \underset{V}{\arg\min}\,\,\,
-  \lambda_3 \big\|\widetilde{V}\big\|_{\star}
+  \frac{\lambda_3}{\rho} \big\|\widetilde{V}\big\|_{\star}
   +
   \frac{1}{2}
-  \big\|V - V_a\big\|_F^2\,.
-  \label{eq:updatevb3}
-\end{align}
-From~\eqref{eq:updatevb1} to~\eqref{eq:updatevb2}, we differentiated w.r.t.\
-$B$ and equated it zero, giving a closed-form expression for updating it:
-\begin{align*}
-  B^{k+1}
-  &=
-  \frac{1}{2}
-  \Big[
-  L^{k+1} + X^{k+1} - V^{k+1} +\frac{1}{\rho}\Lambda^k - \frac{1}{\rho}\Delta^k
-  \Big]\,.
+  \Big\|V - \big(S^{k+1} + \frac{1}{\rho}\Gamma^k\big)\Big\|_F^2\,,
 \end{align*}
-We then replaced the expression for $B$ in the objective function.
-From~\eqref{eq:updatevb2} to~\eqref{eq:updatevb3}, we developed the squares,
-ignored terms that do not depend on $V$, rescaled the objective function, and
-defined
-where 
-\begin{align*}
-  V_a := \frac{1}{3}\bigg[\frac{1}{\rho}\Gamma^k + \frac{1}{\rho}\Lambda^k + S^{k+1}
-  + \frac{1}{2}\big(X^{k+1} - L^{k+1}\big)\bigg]\,.
-\end{align*}
-Notice~\eqref{eq:updatevb3} has exactly the same format as the update of $L$
+and notice that it has exactly the same format as the update of $L$
 in~\eqref{eq:probL1}. The reshaping of the tensors, however, is different.
 Apart from this, the procedure is exactly like the update of $L$ in
 Algorithm~\ref{alg:updateL} and is described in Algorithm~\ref{alg:updateV}.
 \begin{algorithm}
-  \caption{Update of $V$ and $B$ in~\eqref{eq:admm_applied_uvb}}
+  \caption{Update of $V$ in~\eqref{eq:admm_applied_uvb}}
   \label{alg:updateV}
   \begin{algorithmic}[1]
   %\small
@@ -879,8 +787,7 @@ Algorithm~\ref{alg:updateL} and is described in Algorithm~\ref{alg:updateV}.
   \Require Stopping tolerance $\delta > 0$ (e.g., $10^{-3}$), stability number $\epsilon > 0$ (e.g., $10^{-3}$), maximum number of
   reweighting iterations $T > 0$ (e.g., $50$), parameters to compute the
   randomized SVD ($\ell$ and a small tolerance), patch size $P$.
-  \State Compute $V_a := \frac{1}{3}\Big[\frac{1}{\rho}\Gamma^k + \frac{1}{\rho}\Lambda^k + S^{k+1}
-  + \frac{1}{2}\big(X^{k+1} - L^{k+1}\big)\Big] \in \mathbb{R}^{M\times N\times F}$
+  \State Compute $V_a := S^{k+1} + \frac{1}{\rho}\Gamma^k \in \mathbb{R}^{M\times N\times F}$
   \State Reshape $V_a$ into $\widetilde{V}_a \in \mathbb{R}^{P \times L}$ by
   extracting $L$ patches of size $\sqrt{P} \times \sqrt{P}$ from $V_a$ and vectorizing
   them into the columns of $\widetilde{V}_a$
@@ -895,7 +802,7 @@ Algorithm~\ref{alg:updateL} and is described in Algorithm~\ref{alg:updateV}.
     \State Compute, for all $i = 1, \ldots, \min\{P, L\}$, 
     \Comment{Use vector form, not a for loop}
     $$
-    d_i^{t+1} = \max\Big\{\sigma_i - \textcolor{red}{\lambda_3}\frac{1}{d_i^t + \epsilon}\, ,\, 0\Big\}
+    d_i^{t+1} = \max\Big\{\sigma_i - \frac{\lambda_3}{\rho}\frac{1}{d_i^t + \epsilon}\, ,\, 0\Big\}
     $$
     \If{$\max_i |d_i^{t+1} - d_i^t| \leq \delta$}
       \State Break
@@ -906,8 +813,6 @@ Algorithm~\ref{alg:updateL} and is described in Algorithm~\ref{alg:updateV}.
   \State Reshape $\widetilde{V}^{k+1} \in \mathbb{R}^{P \times L}$ into
   $V^{k+1} \in \mathbb{R}^{M\times N\times F}$
   \label{subAlg:updateVReshapeBack}
-  \State Compute 
-  $B^{k+1} = \frac{1}{2}\Big[L^{k+1} + X^{k+1} - V^{k+1} +\frac{1}{\rho}\Lambda^k - \frac{1}{\rho}\Delta^k\Big]$
   \end{algorithmic}
 \end{algorithm}
 
@@ -926,9 +831,77 @@ entries}}. Note:
     so make sure to reuse it.
 \end{itemize}
 
-\mypar{Updating $\bm{\Theta}, \bm{\Gamma}$, $\bm{\Delta}$, and $\bm{\Lambda}$}
+\mypar{Updating $\bm{B}$}
+Finally, $B$ in~\eqref{eq:admm_applied_uvb} is updated as
+\begin{align*}
+  B^{k+1}
+  &=
+  \underset{B}{\arg\min}\,\,\,
+  \frac{1}{2}
+  \big\|Y - \mathcal{H}(B + S^{k+1})\big\|_F^2
+  +
+  \langle\Delta^k, B - L^{k+1}\rangle
+  +
+  \frac{\rho}{2}
+  \|B - L^{k+1}\|_{F}^2
+  \\
+  &=
+  \underset{B}{\arg\min}\,\,\,
+  \frac{1}{2}
+  \big\|\big(Y - \mathcal{H}(S^{k+1})\big) - \mathcal{H}(B)\big\|_F^2
+  +
+  \frac{\rho}{2}\Big\|B - \big(L^{k+1} -
+  \frac{1}{\rho}\Delta^k\big)\Big\|_F^2\,,
+\end{align*}
+which has the same format as~\eqref{eq:probs1}, but note the difference in the
+coefficient multiplying the last term.
+Defining
+\begin{align*}
+  Y_S &:= Y - \mathcal{H}(S^{k+1}) \in \mathbb{R}^{M\times Q}
+      &
+  B_a &:= L^{k+1} - \frac{1}{\rho}\Delta^k \in \mathbb{R}^{M \times N \times F}
+  \\
+  y_s &= \text{vec}(Y_S) \in \mathbb{R}^{MQ}
+    &
+  b_a &:= \text{vec}(B_a) \in \mathbb{R}^{MNF}\,,
+\end{align*}
+a vectorized version of $b^{k+1}$ can be updated as
+\begin{align*}
+  b^{k+1}
+  &=
+  \underset{b \in \mathbb{R}^{MNF}}{\arg\min}\,\,\,
+  \frac{1}{2}\|y_s - H b\|_2^2 
+  + 
+  \frac{\rho}{2}\|b - b_a\|_2^2
+  \\
+  &=
+  \left(H^\top H + \rho I_{MNF \times MNF}\right)^{-1}
+  \left[H^\top y_s + \rho b_a\right]\,,
+\end{align*}
+which has the same format as~\eqref{eq:probsclosedformvec}.
+Just like Algorithm~\ref{alg:updateS}, 
+Algorithm~\ref{alg:updateB} describes the update of $B$ for a conventional SCI
+model (zero-pixel shift).
+\begin{algorithm}
+  \caption{Update of $B$ in~\eqref{eq:admm_applied_uvb} for conventional SCI}
+  \label{alg:updateB}
+  \begin{algorithmic}[1]
+  %\small
+    \State $Y_S = Y - \mathcal{H}(S^{k+1}) \in \mathbb{R}^{M\times N}$
+    \State $C_1 = \rho (L^{k+1} - \frac{1}{\rho}\Delta^k) \in \mathbb{R}^{M\times N\times F}$
+    \State $C_2 \in \mathbb{R}^{M\times N\times F}$ such that each slice
+    $(C_2)_{:, :, f} = M_f \odot Y_S$, $f = 1, \ldots, F$
+    \State $C_3 = C_1 + C_2 \in \mathbb{R}^{M \times N\times F}$
+    \State $B^{k+1} \in \mathbb{R}^{M\times N\times F}$ such that each slice
+    $B^{k+1}_{:, :, f} = \left[1\oslash(M_f^2 + \rho 1_{M\times N})\right]
+    \odot {C_3}_{:, :, f}$,
+    $f=1, \ldots, F$
+  \end{algorithmic}
+\end{algorithm}
+
+\mypar{Updating $\bm{\Theta}, \bm{\Gamma}$, and $\bm{\Delta}$}
 The updates of the dual variables
-in~\eqref{eq:admm_applied_lagrangetheta}-\eqref{eq:admm_applied_lagrangelambda}
+in~\eqref{eq:admm_applied_lagrangetheta}-\eqref{eq:admm_applied_lagrangedelta}
 are trivial. We can, however, make a small simplification: notice how all
 the dual variables in the above problems appear always multiplied by $1/\rho$.
 We can therefore define 
@@ -937,9 +910,7 @@ We can therefore define
   \\
   {\Gamma'}^k &= \frac{1}{\rho}\Gamma^k
   \\
-  {\Delta'}^k &= \frac{1}{\rho}\Delta^k
-  \\
-  {\Lambda'}^k &= \frac{1}{\rho}\Lambda^k\,.
+  {\Delta'}^k &= \frac{1}{\rho}\Delta^k\,.
 \end{align*}
 Dividing both sides of
 equations~\eqref{eq:admm_applied_lagrangetheta}-\eqref{eq:admm_applied_lagrangedelta}
@@ -949,9 +920,7 @@ by $\rho$, we obtain the updates in terms of these new variables:
   \\
   {\Gamma'}^{k+1} &= {\Gamma'}^k +  S^{k+1} - V^{k+1}
   \\
-  {\Delta'}^{k+1} &= {\Delta'}^k + B^{k+1} - L^{k+1}
-  \\
-  {\Lambda'}^{k+1} &= {\Lambda'}^k + X^{k+1} - B^{k+1} - V^{k+1}\,.
+  {\Delta'}^{k+1} &= {\Delta'}^k + B^{k+1} - L^{k+1}\,.
 \end{align*}
 This is equivalent to ADMM in scaled form~\cite[\S3.1.1]{Boyd11-ADMM}.
 
@@ -969,8 +938,6 @@ should be
     S^{k+1} - V^{k+1}
     \\
     B^{k+1} - L^{k+1}
-    \\
-    X^{k+1} - B^{k+1} - V^{k+1}
   \end{bmatrix}\,,
 \end{align*}
 and the dual residual should be
@@ -979,8 +946,6 @@ and the dual residual should be
   =
   -\rho
   \begin{bmatrix}
-    V^{k+1} - V^k + B^{k+1} - B^k
-    \\
     U^{k+1} - U^k + V^{k+1} - V^k
     \\
     B^{k+1} - B^k
@@ -990,71 +955,6 @@ See
 \href{https://github.com/marijavella/sr-via-CNNs-and-tvtv/blob/master/code/TVTV_Solver_CPU.m}{Github}
 for an example of the implementation of ADMM to solve a simpler problem.
 
-\mypar{Convergence}
-ADMM applies to problems with the format~\cite{Boyd11-ADMM}
-\begin{align}
-  \begin{array}[t]{ll}
-  \underset{x, z}{\text{minimize}}
-  &
-  f(x) + g(z)
-  \\
-  \text{subject to}
-  &
-  Ax + Bz = 0\,.
-  \end{array}
-  \label{eq:admm}
-\end{align}
-It converges when $f$ and $g$ are convex and real valued,
-problem~\eqref{eq:admm} is solvable, and the matrices $A$ and $B$ have full
-column rank~\cite{Mota11-ADMMProof}. Problem~\eqref{eq:reformulation} can be
-written in the same format as~\eqref{eq:admm}:
-\begin{align}
-  \label{eq:reformulation2}
-  \begin{array}[t]{cl}
-    \underset{(X, S, L), (U, V, B)}{\text{minimize}}
-    &
-    \Big(
-    \frac{1}{2}
-    \big\|Y - \mathcal{H}(X)\big\|_F^2
-    +
-    \lambda_2 \big\|\overline{L}\big\|_{\star}
-    \Big)
-    +
-    \Big(
-    \lambda_1 \big\|U\big\|_1
-    +
-    \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-    \Big)
-    \\
-    \text{subject to}
-    &
-    \begin{bmatrix*}[r]
-      0 & I & 0 \\
-      0 & I & 0 \\
-      0 & 0 & -I \\
-      I & 0 & 0
-    \end{bmatrix*}
-    \begin{bmatrix}
-      x\\ s\\ l
-    \end{bmatrix}
-    +
-    \begin{bmatrix*}[r]
-      -I & 0 & 0 \\
-      0 & -I & 0 \\
-      0 & 0 & I \\
-      0 & -I & -I 
-    \end{bmatrix*}
-    \begin{bmatrix}
-      u \\ v \\ b
-    \end{bmatrix}
-    = 0\,,
-  \end{array}
-\end{align}
-where lowercase variables are vectorizations of the corresponding uppercase
-variables, and $I$ and $0$ are identity and zero matrices of appropriate
-dimensions. It is clear that both matrices in~\eqref{eq:reformulation2} have
-full column rank. Also, the functions in the objective function are all convex
-and real-valued.
 
 \printbibliography
 
