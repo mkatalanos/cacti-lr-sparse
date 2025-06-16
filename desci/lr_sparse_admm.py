@@ -6,7 +6,8 @@ import numpy as np
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
 from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
-from utils.physics import phi, init
+from utils.dataloader import load_video
+from utils.physics import phi, init, generate_mask
 from utils.visualize import visualize_cube
 from skimage.restoration import denoise_tv_chambolle
 
@@ -16,7 +17,7 @@ def soft_thresh(x, lambda_):
     x = x.astype(np.float64)
     out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
     # out = denoise_tv_chambolle(x, 1/lambda_)
-    return out.clip(0)
+    return out
 
 
 def bar(x: NDArray) -> NDArray:
@@ -108,7 +109,7 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
     U = np.zeros_like(mask, dtype=np.float64)
     # U = np.repeat(Y[:, :, np.newaxis], F, axis=2)
     B = np.zeros_like(mask, dtype=np.float64)
-    # B = np.repeat(Y[:, :, np.newaxis], F, axis=2)
+    # B = np.repeat(Y[:, :, np.newaxis]/F, F, axis=2)
     V = np.zeros_like(mask, dtype=np.float64)
 
     U_old = np.zeros_like(U, dtype=np.float64)
@@ -121,73 +122,78 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
     Lambda = np.zeros_like(mask, dtype=np.float64)
 
     crits = []
-    for it in range(MAX_IT):
-        print(f"Starting iteration: {it},rho={float(rho):.2f}")
-        # Can be done in parallel
-        X = update_X(Y, B, V, Lambda, mask, rho)
-        S = update_S(U, V, Theta, Gamma, rho)
-        L = update_L(B, Delta, rho, lambda_2, mask)
-        # Wait here if parallelizing
+    try:
+        for it in range(MAX_IT):
 
-        # Can be done in parallel
-        U = update_U(S, Theta, lambda_1, rho)
-        V, B = update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3)
+            print(f"Starting iteration: {it},rho={float(rho):.2f}")
+            # Can be done in parallel
+            X = update_X(Y, B, V, Lambda, mask, rho)
+            S = update_S(U, V, Theta, Gamma, rho)
+            L = update_L(B, Delta, rho, lambda_2, mask)
+            # Wait here if parallelizing
 
-        # Wait here if parallelizing
+            # Can be done in parallel
+            U = update_U(S, Theta, lambda_1, rho)
+            V, B = update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3)
 
-        # Update Dual Variables
-        Theta = Theta + rho * (S - U)
-        Gamma = Gamma + rho * (S - V)
-        Delta = Delta + rho * (B - L)
-        Lambda = Lambda + rho * (X-B-V)
+            # Wait here if parallelizing
 
-        primal_res = np.array([S - U, S - V, B - L, X-B-V])
-        dual_res = -rho * np.array([U - U_old + V - V_old, B - B_old])
+            # Update Dual Variables
+            Theta = Theta + rho * (S - U)
+            Gamma = Gamma + rho * (S - V)
+            Delta = Delta + rho * (B - L)
+            Lambda = Lambda + rho * (X-B-V)
 
-        primal_res_norm = np.linalg.norm(primal_res)
-        dual_res_norm = np.linalg.norm(dual_res)
+            primal_res = np.array([S - U, S - V, B - L, X-B-V])
+            dual_res = -rho * np.array([U - U_old + V - V_old, B - B_old])
 
-        mu = 10
-        tau = 2
+            primal_res_norm = np.linalg.norm(primal_res)
+            dual_res_norm = np.linalg.norm(dual_res)
 
-        if primal_res_norm > mu * dual_res_norm:
-            rho = tau * rho
-        elif dual_res_norm > mu * primal_res_norm:
-            rho = rho / tau
-        else:
-            rho = rho
-        # rho=rho*(primal_res_norm/dual_res_norm)
+            mu = 10
+            tau = 2
 
-        U_old = U.copy()
-        V_old = V.copy()
-        B_old = B.copy()
+            if primal_res_norm > mu * dual_res_norm:
+                rho = tau * rho
+            elif dual_res_norm > mu * primal_res_norm:
+                rho = rho / tau
+            else:
+                rho = rho
+            # rho=rho*(primal_res_norm/dual_res_norm)
 
-        V_t, _ = extract_sparse_patches(V, 16)
-        crit = (
-            0.5 * np.linalg.matrix_norm(Y -
-                                        phi(X, mask).reshape(M, N)).sum()
-            + lambda_1 * np.linalg.matrix_norm(U, ord=1).sum()
-            + lambda_2 * np.linalg.norm(bar(L), ord="nuc").sum()
-            + lambda_3 * np.linalg.norm(V_t, ord="nuc").sum()
-        )
+            U_old = U.copy()
+            V_old = V.copy()
+            B_old = B.copy()
 
-        crits.append(crit)
-        print(f"Criterion: {(crit):.2e}")
-        # print(f"Primal-dual norm ratio: {(primal_res_norm/dual_res_norm):.2f}")
-        print()
+            V_t, _ = extract_sparse_patches(V, 16)
+            crit = (
+                0.5 * np.linalg.matrix_norm(Y -
+                                            phi(X, mask).reshape(M, N)).sum()
+                + lambda_1 * np.linalg.matrix_norm(U, ord=1).sum()
+                + lambda_2 * np.linalg.norm(bar(L), ord="nuc").sum()
+                + lambda_3 * np.linalg.norm(V_t, ord="nuc").sum()
+            )
+
+            crits.append(crit)
+            print(f"Criterion: {(crit):.2e}")
+            # print(f"Primal-dual norm ratio: {(primal_res_norm/dual_res_norm):.2f}")
+            print()
+    except KeyboardInterrupt:
+        return X, S, L, U, V, B, crits
 
     return X, S, L, U, V, B, crits
 
 
 if __name__ == "__main__":
-    x, y, mask = init(dataset="./datasets/drop40_cacti.mat")
-    F = mask.shape[2]
-    x, mask = x[:, :, :F], mask[:, :, :F]
+    x = load_video(
+        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:90]
+    mask = generate_mask(x.shape, 0.5)
     y = phi(x, mask)
+
     M, N, F = mask.shape
 
     X, S, L, U, V, B, crits = ADMM(
-        y, mask, rho=5, lambda_1=0.1, lambda_2=0.5, lambda_3=0.5, MAX_IT=2000
+        y, mask, rho=1, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=2000
     )
     visualize_cube(X)
     # # primal_res = np.array([S-U, S-V, B-L])

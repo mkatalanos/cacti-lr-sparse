@@ -9,6 +9,15 @@ from numpy.typing import NDArray
 from scipy import io
 
 
+def generate_mask(shape, density=0.5):
+    shape_flat = np.prod(shape)
+    mask = np.random.randint(0, 1000, int(shape_flat))
+    mask[mask < density*1000] = 0
+    mask[mask != 0] = 1
+    mask = mask.reshape(shape)
+    return mask
+
+
 def init(dataset: str, sparsity=0.5):
     # Generate Measurement operator
 
