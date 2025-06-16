@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 from scipy import io
 
 
-def init(dataset: str):
+def init(dataset: str, sparsity=0.5):
     # Generate Measurement operator
 
     # TODO: Waiting for Shubham to generate own masks
@@ -19,8 +19,11 @@ def init(dataset: str):
     dataset = io.loadmat(dataset)
 
     x = dataset["orig"]
-    mask = dataset["mask"]
-    meas = dataset["meas"]
+    mask = np.random.randint(0, 1000, x.shape)
+    mask[mask < sparsity*1000] = 0
+    mask[mask != 0] = 1
+    # mask = dataset["mask"]
+    # meas = dataset["meas"]
     x, y = apply_cacti_mask_single(x, mask)
     # assert np.all(
     #     np.isclose(0, y - meas[:, :, 0])
@@ -135,7 +138,8 @@ def phi_from_mask(mask: NDArray[np.uint8]):
     H, W, B = mask.shape
 
     mask_flat = mask.reshape(H * W, B)
-    diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8) for b in range(B)]
+    diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8)
+                     for b in range(B)]
 
     Phi = sp.hstack(diag_matrices, format="coo", dtype=np.uint8)
 
