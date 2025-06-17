@@ -27,7 +27,7 @@ def bar(x: NDArray) -> NDArray:
 
 
 # @njit
-def update_X(Y, B, V, Lambda, mask, rho):
+def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
     M, N, F = mask.shape
 
@@ -35,7 +35,7 @@ def update_X(Y, B, V, Lambda, mask, rho):
     C2 = np.multiply(mask, Y[:, :, np.newaxis])
     C3 = C1 + C2
 
-    mff = np.multiply(mask, mask)
+    mff = lambda_0 * np.multiply(mask, mask)
 
     X = np.multiply(np.divide(1, mff + rho), C3)
 
@@ -67,7 +67,7 @@ def update_L(
 
 def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
-    return S
+    return S.clip(0)
 # @njit
 
 
@@ -100,7 +100,7 @@ def update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3, max_it=50, epsil
     return V, B
 
 
-def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
+def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3):
     M, N, F = mask.shape
 
     # Init
@@ -127,7 +127,7 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
 
             print(f"Starting iteration {it} with rho: {float(rho):.2f}")
             # Can be done in parallel
-            X = update_X(Y, B, V, Lambda, mask, rho)
+            X = update_X(Y, B, V, Lambda, mask, rho, lambda_0)
             S = update_S(U, V, Theta, Gamma, rho)
             L = update_L(B, Delta, rho, lambda_2, mask)
             # Wait here if parallelizing
@@ -192,14 +192,14 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
 
 if __name__ == "__main__":
     x = load_video(
-        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:38]
-    mask = generate_mask(x.shape, 0.5)
+        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:39]
+    mask = generate_mask(x.shape, 0.2)
     y = phi(x, mask)
 
     M, N, F = mask.shape
 
     X, S, L, U, V, B, crits = ADMM(
-        y, mask, rho=1, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=2000
+        y, mask, rho=1, lambda_0=15, lambda_1=0.5, lambda_2=2.0, lambda_3=0.5, MAX_IT=2000
     )
     visualize_cube(X)
     # # primal_res = np.array([S-U, S-V, B-L])
