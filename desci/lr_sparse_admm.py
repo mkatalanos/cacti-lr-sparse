@@ -67,7 +67,7 @@ def update_L(
 
 def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
-    return S.clip(0)
+    return S
 # @njit
 
 
