@@ -1,6 +1,7 @@
 cvxpy
 ecos
 hdbscan
+imageio[ffmpeg]
 ipython
 matplotlib
 numba
