@@ -9,6 +9,7 @@ from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
 from utils.dataloader import load_video
 from utils.physics import phi, init, generate_mask
 from utils.visualize import visualize_cube
+from skimage.metrics import peak_signal_noise_ratio
 
 
 # @njit
@@ -31,7 +32,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
     M, N, F = mask.shape
 
-    C1 = rho * (B+V-Lambda/rho)
+    C1 = rho * (B + V - Lambda / rho)
     C2 = np.multiply(mask, Y[:, :, np.newaxis])
     C3 = C1 + C2
 
@@ -43,7 +44,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
 
 def update_L(
-    B, Delta, rho, lambda_2, mask, delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=200
+    B, Delta, rho, lambda_2, mask, delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=10
 ):
     M, N, F = mask.shape
     La = B + Delta / rho
@@ -66,8 +67,10 @@ def update_L(
 
 
 def update_S(U, V, Theta, Gamma, rho):
-    S = (U+V-(Theta+Gamma)/rho)/2
-    return S.clip(0)
+    S = (U + V - (Theta + Gamma) / rho) / 2
+    return S
+
+
 # @njit
 
 
@@ -76,11 +79,25 @@ def update_U(S, Theta, lambda_1, rho):
     return soft_thresh(U_a, lambda_1 / rho)
 
 
-def update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3, max_it=50, epsilon=1e-3, delta=1e-3, svd_l=200, patch_size=4):
+def update_V_B(
+    X,
+    L,
+    V,
+    S,
+    Gamma,
+    Lambda,
+    Delta,
+    rho,
+    lambda_3,
+    max_it=50,
+    epsilon=1e-3,
+    delta=1e-3,
+    svd_l=20,
+    patch_size=4,
+):
 
-    Va = ((Gamma+Lambda)/rho + S + 0.5*(X-L))/3
-    Va_tilde, patch_locations = extract_sparse_patches(
-        Va, patch_size, stride_ratio=2)
+    Va = ((Gamma + Lambda) / rho + S + 0.5 * (X - L)) / 3
+    Va_tilde, patch_locations = extract_sparse_patches(Va, patch_size, stride_ratio=2)
 
     u, s, vh = randomized_svd(Va_tilde, svd_l)
 
@@ -96,11 +113,13 @@ def update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3, max_it=50, epsil
 
     V_tilde = u @ np.diag(d) @ vh
     V = reconstruct_sparse_patches(V_tilde, patch_locations, S.shape)
-    B = (L+X-V+(Lambda-Delta)/rho)/2
+    B = (L + X - V + (Lambda - Delta) / rho) / 2
     return V, B
 
 
-def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3):
+def ADMM(
+    y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3
+):
     M, N, F = mask.shape
 
     # Init
@@ -142,9 +161,9 @@ def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.
             Theta = Theta + rho * (S - U)
             Gamma = Gamma + rho * (S - V)
             Delta = Delta + rho * (B - L)
-            Lambda = Lambda + rho * (X-B-V)
+            Lambda = Lambda + rho * (X - B - V)
 
-            primal_res = np.array([S - U, S - V, B - L, X-B-V])
+            primal_res = np.array([S - U, S - V, B - L, X - B - V])
             dual_res = -rho * np.array([U - U_old + V - V_old, B - B_old])
 
             primal_res_norm = np.linalg.norm(primal_res)
@@ -169,19 +188,27 @@ def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.
 
             V_t, _ = extract_sparse_patches(V, 16)
 
-            data_fidelity = 0.5 * \
-                np.linalg.norm(Y - phi(X, mask).reshape(M, N))
+            data_fidelity = 0.5 * np.linalg.norm(Y - phi(X, mask).reshape(M, N))
             l1_term = np.linalg.norm(U.reshape(-1), 1)
             nuc_l_term = np.linalg.norm(bar(L), ord="nuc")
             nuc_v_term = np.linalg.norm(V_t, ord="nuc")
 
-            crit = (data_fidelity, l1_term, nuc_l_term, nuc_v_term)
+            crit = (
+                data_fidelity,
+                l1_term,
+                nuc_l_term,
+                nuc_v_term,
+                primal_norms[0],
+                primal_norms[1],
+                primal_norms[2],
+            )
             crits.append(crit)
 
             print(f"|Y-H(X)|:\t{data_fidelity:.1e}, |U|_1:\t{l1_term:.1e}")
             print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
             print(
-                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]: .1e}, |X-B-V|: {primal_norms[2]: .1e}")
+                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]: .1e}, |X-B-V|: {primal_norms[2]: .1e}"
+            )
 
             print()
     except KeyboardInterrupt:
@@ -191,16 +218,29 @@ def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.
 
 
 if __name__ == "__main__":
-    x = load_video(
-        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:39]
+    x = load_video("./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:120]
     mask = generate_mask(x.shape, 0.2)
     y = phi(x, mask)
+
+    lambda_0 = 15
+    lambda_1 = 0.5
+    lambda_2 = 0.5
+    lambda_3 = 0.5
 
     M, N, F = mask.shape
 
     X, S, L, U, V, B, crits = ADMM(
-        y, mask, rho=1, lambda_0=15, lambda_1=0.5, lambda_2=2.0, lambda_3=0.5, MAX_IT=2000
+        y,
+        mask,
+        rho=1,
+        lambda_0=lambda_0,
+        lambda_1=lambda_1 / (M * N * F),
+        lambda_2=lambda_2 / 10,
+        lambda_3=lambda_3 / 30,
+        MAX_IT=2000,
     )
+    psnr = peak_signal_noise_ratio(x, X, data_range=255)
+    print(f"PSNR:", psnr)
     visualize_cube(X)
     # # primal_res = np.array([S-U, S-V, B-L])
     # # visualize_cube((B+S))

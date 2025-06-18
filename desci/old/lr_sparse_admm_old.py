@@ -85,7 +85,15 @@ def update_U(S, Theta, lambda_1, rho):
 
 
 def update_V(
-    S, Gamma, rho, lambda_3, max_it=50, epsilon=1e-3, delta=1e-3, svd_l=10, patch_size=32
+    S,
+    Gamma,
+    rho,
+    lambda_3,
+    max_it=50,
+    epsilon=1e-3,
+    delta=1e-3,
+    svd_l=10,
+    patch_size=32,
 ):
 
     Va = S + Gamma / rho
@@ -177,7 +185,9 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
         Delta = Delta + rho * (B - L)
 
         primal_res = np.array([S - U, S - V, B - L])
-        dual_res = -rho * np.array([V-V_old+B-B_old, U-U_old+V-V_old, B-B_old])
+        dual_res = -rho * np.array(
+            [V - V_old + B - B_old, U - U_old + V - V_old, B - B_old]
+        )
 
         primal_res_norm = np.linalg.norm(primal_res)
         dual_res_norm = np.linalg.norm(dual_res)
@@ -198,8 +208,7 @@ def ADMM(y, mask, rho=0.8, lambda_1=0.8, lambda_2=0.8, lambda_3=0.8, MAX_IT=3):
 
         V_t, _ = extract_sparse_patches(V, 16)
         crit = (
-            0.5 * np.linalg.matrix_norm(Y -
-                                        phi(B + S, mask).reshape(M, N)).sum()
+            0.5 * np.linalg.matrix_norm(Y - phi(B + S, mask).reshape(M, N)).sum()
             + lambda_1 * np.linalg.matrix_norm(U, ord=1).sum()
             + lambda_2 * np.linalg.norm(bar(L), ord="nuc").sum()
             + lambda_3 * np.linalg.norm(V_t, ord="nuc").sum()

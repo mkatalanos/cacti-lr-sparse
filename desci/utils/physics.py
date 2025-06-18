@@ -9,10 +9,10 @@ from numpy.typing import NDArray
 from scipy import io
 
 
-def generate_mask(shape, density=0.5):
+def generate_mask(shape, block_rate=0.5):
     shape_flat = np.prod(shape)
     mask = np.random.randint(0, 1000, int(shape_flat))
-    mask[mask < density*1000] = 0
+    mask[mask < block_rate * 1000] = 0
     mask[mask != 0] = 1
     mask = mask.reshape(shape)
     return mask
@@ -29,7 +29,7 @@ def init(dataset: str, sparsity=0.5):
 
     x = dataset["orig"]
     mask = np.random.randint(0, 1000, x.shape)
-    mask[mask < sparsity*1000] = 0
+    mask[mask < sparsity * 1000] = 0
     mask[mask != 0] = 1
     # mask = dataset["mask"]
     # meas = dataset["meas"]
@@ -147,8 +147,7 @@ def phi_from_mask(mask: NDArray[np.uint8]):
     H, W, B = mask.shape
 
     mask_flat = mask.reshape(H * W, B)
-    diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8)
-                     for b in range(B)]
+    diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8) for b in range(B)]
 
     Phi = sp.hstack(diag_matrices, format="coo", dtype=np.uint8)
 
