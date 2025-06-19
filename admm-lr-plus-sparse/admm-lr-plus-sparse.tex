@@ -190,7 +190,10 @@ Given the above assumption, we can formulate the reconstruction problem as
   +
   \lambda_2 \big\|\overline{B}\big\|_{\star}
   +
-  \lambda_3 \big\|\widetilde{S}\big\|_{\star}\,,
+  \lambda_3 \big\|\widetilde{S}\big\|_{\star} 
+  + 
+  \text{i}_{\mathbb{R}_+}(S)
+  \,,
 \end{align}
 where 
 \begin{itemize}
@@ -203,6 +206,12 @@ where
 
   \item $\|\cdot\|_{\star}$ is the nuclear-norm (Schatten $1$-norm), which is
     the $\ell_1$-norm applied to the singular values of the matrix.
+
+
+  \item $\text{i}_{\mathbb{R}_+}(\cdot)$ is the indicator function, applied
+    componentwise, of the nonnegative numbers, i.e.,
+    $\text{i}_{\mathbb{R}_+}(x) = 0$ if $x \geq 0$, and
+    $\text{i}_{\mathbb{R}_+}(x) = +\infty$ if $x < 0$.
 
   \item $\lambda_0, \lambda_1, \lambda_2, \lambda_3 \geq 0$ are nonnegative
     hyperparameters.
@@ -227,6 +236,8 @@ Problem~\eqref{eq:prob} is thus equivalent to
     \lambda_2 \big\|\overline{L}\big\|_{\star}
     +
     \lambda_3 \big\|\widetilde{V}\big\|_{\star}
+    +
+    \text{i}_{\mathbb{R}_+}(S)
     \\
     \text{subject to}
     &
@@ -252,6 +263,8 @@ The augmented Lagrangian of~\eqref{eq:reformulation} is
   \lambda_2 \big\|\overline{L}\big\|_{\star}
   +
   \lambda_3 \big\|\widetilde{V}\big\|_{\star}
+  +
+  \text{i}_{\mathbb{R}_+}(S)
   \\
   +
   \langle\Theta, S - U\rangle
@@ -306,6 +319,8 @@ $\big(\Theta^0, \Gamma^0, \Delta^0, \Lambda^0\big)$, ADMM iterates for $k = 0, 1
       &\qquad
       +
       \bigg[
+        \text{i}_{\mathbb{R}_+}(S)
+        +
         \langle\Theta^k, S - U^k\rangle
         +
         \langle\Gamma^k, S - V^k\rangle
@@ -521,6 +536,7 @@ The problem in $S$ in~\eqref{eq:admm_applied_sl} is
   S^{k+1} 
   &=
   \underset{S}{\arg\min} \,\,\,
+  \text{i}_{\mathbb{R}_+}(S)
   \langle\Theta^k, S - U^k\rangle
   +
   \langle\Gamma^k, S - V^k\rangle
@@ -532,10 +548,13 @@ The problem in $S$ in~\eqref{eq:admm_applied_sl} is
   \|S - V^k\|_{F}^2
   \\ 
   &=
+  \max\bigg\{
   \frac{1}{2}
-  \Big(U^k + V^k - \frac{1}{\rho}\Theta^k - \frac{1}{\rho}\Gamma^k\Big)\,,
+  \Big(U^k + V^k - \frac{1}{\rho}\Theta^k - \frac{1}{\rho}\Gamma^k\Big),\, 0
+    \bigg\}
+  \,,
 \end{align*}
-where we simply equated the derivative w.r.t.\ $S$ to zero. 
+where the maximum is applied componentwise.
 
 \mypar{Updating $\bm{L}$}
 The problem in $L$ in~\eqref{eq:admm_applied_sl} can be rewritten as
@@ -777,11 +796,11 @@ done in Algorithm~\ref{alg:updateU}.
         =
         \left\{
         \begin{array}{ll}
-          (U_a)_{ijl} + \frac{\lambda}{\rho} &,\,\text{if $(U_a)_{ijl} > -\frac{\lambda}{\rho}$}
+          (U_a)_{ijl} + \frac{\lambda}{\rho} &,\,\text{if $(U_a)_{ijl} < -\frac{\lambda}{\rho}$}
           \\[0.2cm]
           0 &,\,\text{if $\big|(U_a)_{ijl}\big| \leq \frac{\lambda}{\rho}$}
           \\[0.2cm]
-          (U_a)_{ijl} - \frac{\lambda}{\rho} &,\,\text{if $(U_a)_{ijl} < \frac{\lambda}{\rho}$}
+          (U_a)_{ijl} - \frac{\lambda}{\rho} &,\,\text{if $(U_a)_{ijl} > \frac{\lambda}{\rho}$}
         \end{array}
         \right.
       \end{align*}

@@ -14,6 +14,8 @@ from utils.visualize import visualize_cube
 # @njit
 def soft_thresh(x, lambda_):
     x = x.astype(np.float64)
+    # JM: I just noticed that Algorithm 3 in the pdf has typos. This is
+    # correct. Thank you
     out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
     # out = denoise_tv_chambolle(x, 1/lambda_)
     return out
@@ -33,6 +35,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
     C1 = rho * (B+V-Lambda/rho)
     C2 = np.multiply(mask, Y[:, :, np.newaxis])
+    # JM: **Should be C3 = C1 + lambda_0*C2**
     C3 = C1 + C2
 
     mff = lambda_0 * np.multiply(mask, mask)
@@ -43,7 +46,8 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
 
 def update_L(
-    B, Delta, rho, lambda_2, mask, delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=200
+    B, Delta, rho, lambda_2, mask, delta=1e-3, epsilon=1e-3, max_it=1000,
+    svd_l=2
 ):
     M, N, F = mask.shape
     La = B + Delta / rho
@@ -52,6 +56,8 @@ def update_L(
     # s is array of components
     dold = s.copy()
 
+    # JM: I would be interested to know how many iterations this takes on
+    # average
     for t in range(max_it):
         d = s - (lambda_2 / rho) * (1 / (dold + epsilon))
         d = np.maximum(d, 0)
@@ -67,6 +73,7 @@ def update_L(
 
 def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
+    # JM: Ok, I should update the document with this operation
     return S.clip(0)
 # @njit
 
@@ -76,7 +83,8 @@ def update_U(S, Theta, lambda_1, rho):
     return soft_thresh(U_a, lambda_1 / rho)
 
 
-def update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3, max_it=50, epsilon=1e-3, delta=1e-3, svd_l=200, patch_size=4):
+def update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3, max_it=50,
+               epsilon=1e-3, delta=1e-3, svd_l=20, patch_size=16):
 
     Va = ((Gamma+Lambda)/rho + S + 0.5*(X-L))/3
     Va_tilde, patch_locations = extract_sparse_patches(
@@ -106,12 +114,15 @@ def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.
     # Init
     Y = y.reshape((M, N)).astype(np.float64)
 
+    # JM: Initialization for U and V looks good. We expect them to be near
+    # zero. What about initializing B with the commented line (np.repeat)?
     U = np.zeros_like(mask, dtype=np.float64)
     # U = np.repeat(Y[:, :, np.newaxis], F, axis=2)
     B = np.zeros_like(mask, dtype=np.float64)
     # B = np.repeat(Y[:, :, np.newaxis]/F, F, axis=2)
     V = np.zeros_like(mask, dtype=np.float64)
 
+    # JM: Here there's potential for error. Why not make copies of U, V, B?
     U_old = np.zeros_like(U, dtype=np.float64)
     B_old = np.zeros_like(B, dtype=np.float64)
     V_old = np.zeros_like(V, dtype=np.float64)
@@ -121,6 +132,8 @@ def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.
     Gamma = np.zeros_like(mask, dtype=np.float64)
     Lambda = np.zeros_like(mask, dtype=np.float64)
 
+    # JM: Just to make memory fixed from the beginning (even though it's a small
+    # footprint), I would declare crits as a vector/array of tuples with MAX_IT entries. 
     crits = []
     try:
         for it in range(MAX_IT):
@@ -132,6 +145,7 @@ def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.
             L = update_L(B, Delta, rho, lambda_2, mask)
             # Wait here if parallelizing
 
+            # JM: do you need V as input to update_V_B?
             # Can be done in parallel
             U = update_U(S, Theta, lambda_1, rho)
             V, B = update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3)
@@ -145,6 +159,8 @@ def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.
             Lambda = Lambda + rho * (X-B-V)
 
             primal_res = np.array([S - U, S - V, B - L, X-B-V])
+
+            # JM: **dual residual hasn't been updated: it's missing one entry; see pdf document**
             dual_res = -rho * np.array([U - U_old + V - V_old, B - B_old])
 
             primal_res_norm = np.linalg.norm(primal_res)
@@ -152,6 +168,7 @@ def ADMM(y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.
 
             primal_norms = [np.linalg.norm(term) for term in primal_res]
 
+            # JM: these can be defined as parameters outside the function
             mu = 10
             tau = 2
 
@@ -198,9 +215,7 @@ if __name__ == "__main__":
 
     M, N, F = mask.shape
 
-    X, S, L, U, V, B, crits = ADMM(
-        y, mask, rho=1, lambda_0=15, lambda_1=0.5, lambda_2=2.0, lambda_3=0.5, MAX_IT=2000
-    )
+    X, S, L, U, V, B, crits = ADMM( y, mask, rho=1, lambda_0=1/(M*N), lambda_1=1/(M*N*F), lambda_2=0.2, lambda_3=0.05, MAX_IT=2000)
     visualize_cube(X)
     # # primal_res = np.array([S-U, S-V, B-L])
     # # visualize_cube((B+S))
