@@ -842,25 +842,21 @@ w.r.t.\ $B$, then w.r.t.\ $V$:
   \underset{V}{\arg\min}\,\,\,
   \lambda_3 \big\|\widetilde{V}\big\|_{\star}
   +
-  \langle\Gamma^k, S^{k+1} - V\rangle
+  \frac{\rho}{4}\|V\|_F^2
   +
-  \frac{\rho}{2}
-  \|S^{k+1} - V\|_{F}^2
-  -
-  \frac{1}{2}
-  \langle \Delta^k + \Lambda^k, V\rangle
+  \langle V, - \frac{1}{2}\Delta^k - \frac{1}{2}\Lambda^k + 2L^{k+1} - 2 X^{k+1} \rangle
   \notag
   \\
-  &\quad
+  &\qquad
   +
-  \frac{\rho}{4}
-  \Big\|\big(X^{k+1} + \frac{1}{\rho}\Lambda^k - \frac{1}{\rho}\Delta^k - L^{k+1}\big)
-  - V\Big\|_F^2
+  \langle \Gamma^k, S^{k+1} - V \rangle
+  +
+  \frac{\rho}{2}\|S^{k+1} - V\|_F^2
   \label{eq:updatevb2}
   \\
   &=
   \underset{V}{\arg\min}\,\,\,
-  \lambda_3 \big\|\widetilde{V}\big\|_{\star}
+  \frac{2\lambda_3}{3\rho} \big\|\widetilde{V}\big\|_{\star}
   +
   \frac{1}{2}
   \big\|V - V_a\big\|_F^2\,.
@@ -881,8 +877,10 @@ From~\eqref{eq:updatevb2} to~\eqref{eq:updatevb3}, we developed the squares,
 ignored terms that do not depend on $V$, rescaled the objective function, and
 defined
 \begin{align*}
-  V_a := \frac{1}{3}\bigg[\frac{1}{\rho}\Gamma^k + \frac{1}{\rho}\Lambda^k + S^{k+1}
-  + \frac{1}{2}\big(X^{k+1} - L^{k+1}\big)\bigg]\,.
+  V_a := 
+  \frac{1}{3}\bigg[\frac{2}{\rho}\Gamma^k + \frac{1}{\rho}\Lambda^k +
+    \frac{1}{\rho}\Delta^k  + 2S^{k+1}
+  + \frac{4}{\rho}\big(X^{k+1} - L^{k+1}\big)\bigg]\,.
 \end{align*}
 Notice~\eqref{eq:updatevb3} has exactly the same format as the update of $L$
 in~\eqref{eq:probL1}. The reshaping of the tensors, however, is different.
@@ -897,8 +895,11 @@ Algorithm~\ref{alg:updateL} and is described in Algorithm~\ref{alg:updateV}.
   \Require Stopping tolerance $\delta > 0$ (e.g., $10^{-3}$), stability number $\epsilon > 0$ (e.g., $10^{-3}$), maximum number of
   reweighting iterations $T > 0$ (e.g., $50$), parameters to compute the
   randomized SVD ($\ell$ and a small tolerance), patch size $P$.
-  \State Compute $V_a := \frac{1}{3}\Big[\frac{1}{\rho}\Gamma^k + \frac{1}{\rho}\Lambda^k + S^{k+1}
-  + \frac{1}{2}\big(X^{k+1} - L^{k+1}\big)\Big] \in \mathbb{R}^{M\times N\times F}$
+  \State Compute 
+  $ V_a = 
+  \frac{1}{3}\Big[\frac{2}{\rho}\Gamma^k + \frac{1}{\rho}\Lambda^k +
+    \frac{1}{\rho}\Delta^k  + 2S^{k+1}
+  + \frac{4}{\rho}\big(X^{k+1} - L^{k+1}\big)\Big] \in \mathbb{R}^{M\times N\times F}$
   \State Reshape $V_a$ into $\widetilde{V}_a \in \mathbb{R}^{P \times L}$ by
   extracting $L$ patches of size $\sqrt{P} \times \sqrt{P}$ from $V_a$ and vectorizing
   them into the columns of $\widetilde{V}_a$
@@ -913,7 +914,7 @@ Algorithm~\ref{alg:updateL} and is described in Algorithm~\ref{alg:updateV}.
     \State Compute, for all $i = 1, \ldots, \min\{P, L\}$, 
     \Comment{Use vector form, not a for loop}
     $$
-    d_i^{t+1} = \max\Big\{\sigma_i - \textcolor{red}{\lambda_3}\frac{1}{d_i^t + \epsilon}\, ,\, 0\Big\}
+    d_i^{t+1} = \max\Big\{\sigma_i - \frac{2\lambda_3}{3 \rho}\frac{1}{d_i^t + \epsilon}\, ,\, 0\Big\}
     $$
     \If{$\max_i |d_i^{t+1} - d_i^t| \leq \delta$}
       \State Break
