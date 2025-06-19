@@ -37,7 +37,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
     C1 = rho * (B + V - Lambda / rho)
     C2 = np.multiply(mask, Y[:, :, np.newaxis])
     # JM: **Should be C3 = C1 + lambda_0*C2**
-    C3 = C1 + C2
+    C3 = C1 + lambda_0 * C2
 
     mff = lambda_0 * np.multiply(mask, mask)
 
@@ -56,7 +56,7 @@ def update_L(
     # s is array of components
     dold = s.copy()
 
-    # JM: I would be interested to know how many iterations this takes on
+    # TODO: JM: I would be interested to know how many iterations this takes on
     # average
     for t in range(max_it):
         d = s - (lambda_2 / rho) * (1 / (dold + epsilon))
@@ -75,8 +75,8 @@ def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
     # JM: Ok, I should update the document with this operation
     return S.clip(0)
-    S = (U + V - (Theta + Gamma) / rho) / 2
-    return S
+    # S = (U + V - (Theta + Gamma) / rho) / 2
+    # return S
 
 
 # @njit
@@ -90,7 +90,6 @@ def update_U(S, Theta, lambda_1, rho):
 def update_V_B(
     X,
     L,
-    V,
     S,
     Gamma,
     Lambda,
@@ -104,8 +103,9 @@ def update_V_B(
     patch_size=4,
 ):
 
-    Va = ((Gamma + Lambda) / rho + S + 0.5 * (X - L)) / 3
-    Va_tilde, patch_locations = extract_sparse_patches(Va, patch_size, stride_ratio=2)
+    Va = ((2*Gamma + Lambda + Delta) / rho + 2 * S + 4*(X-L)/rho) / 3
+    Va_tilde, patch_locations = extract_sparse_patches(
+        Va, patch_size, stride_ratio=2)
 
     u, s, vh = randomized_svd(Va_tilde, svd_l)
 
@@ -113,7 +113,7 @@ def update_V_B(
     dold = s.copy()
 
     for t in range(max_it):
-        d = s - lambda_3 * (1 / (dold + epsilon))
+        d = s - ((2*lambda_3)/(3*rho)) * (1 / (dold + epsilon))
         d = d.clip(0)
         dold = d
         if np.abs(d - dold).max() <= delta:
@@ -126,8 +126,7 @@ def update_V_B(
 
 
 def ADMM(
-    y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3
-):
+        y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3, mu=10, tau=2):
     M, N, F = mask.shape
 
     # Init
@@ -137,14 +136,14 @@ def ADMM(
     # zero. What about initializing B with the commented line (np.repeat)?
     U = np.zeros_like(mask, dtype=np.float64)
     # U = np.repeat(Y[:, :, np.newaxis], F, axis=2)
-    B = np.zeros_like(mask, dtype=np.float64)
-    # B = np.repeat(Y[:, :, np.newaxis]/F, F, axis=2)
+    # B = np.zeros_like(mask, dtype=np.float64)
+    B = np.repeat(Y[:, :, np.newaxis]/F, F, axis=2)
     V = np.zeros_like(mask, dtype=np.float64)
 
     # JM: Here there's potential for error. Why not make copies of U, V, B?
-    U_old = np.zeros_like(U, dtype=np.float64)
-    B_old = np.zeros_like(B, dtype=np.float64)
-    V_old = np.zeros_like(V, dtype=np.float64)
+    U_old = U.copy()
+    B_old = B.copy()
+    V_old = V.copy()
 
     Theta = np.zeros_like(mask, dtype=np.float64)
     Delta = np.zeros_like(mask, dtype=np.float64)
@@ -152,7 +151,7 @@ def ADMM(
     Lambda = np.zeros_like(mask, dtype=np.float64)
 
     # JM: Just to make memory fixed from the beginning (even though it's a small
-    # footprint), I would declare crits as a vector/array of tuples with MAX_IT entries. 
+    # footprint), I would declare crits as a vector/array of tuples with MAX_IT entries.
     crits = []
     try:
         for it in range(MAX_IT):
@@ -167,7 +166,7 @@ def ADMM(
             # JM: do you need V as input to update_V_B?
             # Can be done in parallel
             U = update_U(S, Theta, lambda_1, rho)
-            V, B = update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3)
+            V, B = update_V_B(X, L, S, Gamma, Lambda, Delta, rho, lambda_3)
 
             # Wait here if parallelizing
 
@@ -177,10 +176,18 @@ def ADMM(
             Delta = Delta + rho * (B - L)
             Lambda = Lambda + rho * (X - B - V)
 
-            primal_res = np.array([S - U, S - V, B - L, X-B-V])
             # JM: **dual residual hasn't been updated: it's missing one entry; see pdf document**
-            primal_res = np.array([S - U, S - V, B - L, X - B - V])
-            dual_res = -rho * np.array([U - U_old + V - V_old, B - B_old])
+            primal_res = np.array(
+                [S - U,
+                 S - V,
+                 B - L,
+                 X - B - V]
+            )
+            dual_res = -rho * np.array(
+                [V-V_old+B-B_old,
+                 U-U_old+V-V_old,
+                 B - B_old]
+            )
 
             primal_res_norm = np.linalg.norm(primal_res)
             dual_res_norm = np.linalg.norm(dual_res)
@@ -188,8 +195,6 @@ def ADMM(
             primal_norms = [np.linalg.norm(term) for term in primal_res]
 
             # JM: these can be defined as parameters outside the function
-            mu = 10
-            tau = 2
 
             if primal_res_norm > mu * dual_res_norm:
                 rho = tau * rho
@@ -205,7 +210,8 @@ def ADMM(
 
             V_t, _ = extract_sparse_patches(V, 16)
 
-            data_fidelity = 0.5 * np.linalg.norm(Y - phi(X, mask).reshape(M, N))
+            data_fidelity = 0.5 * \
+                np.linalg.norm(Y - phi(X, mask).reshape(M, N))
             l1_term = np.linalg.norm(U.reshape(-1), 1)
             nuc_l_term = np.linalg.norm(bar(L), ord="nuc")
             nuc_v_term = np.linalg.norm(V_t, ord="nuc")
@@ -235,13 +241,14 @@ def ADMM(
 
 
 if __name__ == "__main__":
-    x = load_video("./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:120]
+    x = load_video(
+        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:38]
     mask = generate_mask(x.shape, 0.2)
     y = phi(x, mask)
 
     lambda_0 = 15
     lambda_1 = 0.5
-    lambda_2 = 0.5
+    lambda_2 = 2.0
     lambda_3 = 0.5
 
     M, N, F = mask.shape
@@ -251,9 +258,9 @@ if __name__ == "__main__":
         mask,
         rho=1,
         lambda_0=lambda_0,
-        lambda_1=lambda_1 / (M * N * F),
-        lambda_2=lambda_2 / 10,
-        lambda_3=lambda_3 / 30,
+        lambda_1=lambda_1,
+        lambda_2=lambda_2,
+        lambda_3=lambda_3,
         MAX_IT=2000,
     )
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
