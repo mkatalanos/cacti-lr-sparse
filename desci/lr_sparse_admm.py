@@ -74,7 +74,7 @@ def update_L(
 def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
     # JM: Ok, I should update the document with this operation
-    return S.clip(0)
+    return S
     # S = (U + V - (Theta + Gamma) / rho) / 2
     # return S
 
@@ -136,8 +136,8 @@ def ADMM(
     # zero. What about initializing B with the commented line (np.repeat)?
     U = np.zeros_like(mask, dtype=np.float64)
     # U = np.repeat(Y[:, :, np.newaxis], F, axis=2)
-    # B = np.zeros_like(mask, dtype=np.float64)
-    B = np.repeat(Y[:, :, np.newaxis]/F, F, axis=2)
+    B = np.zeros_like(mask, dtype=np.float64)
+    # B = np.repeat(Y[:, :, np.newaxis]/F, F, axis=2)
     V = np.zeros_like(mask, dtype=np.float64)
 
     # JM: Here there's potential for error. Why not make copies of U, V, B?
@@ -247,7 +247,7 @@ if __name__ == "__main__":
     y = phi(x, mask)
 
     lambda_0 = 15
-    lambda_1 = 0.5
+    lambda_1 = 0.17
     lambda_2 = 2.0
     lambda_3 = 0.5
 
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     X, S, L, U, V, B, crits = ADMM(
         y,
         mask,
-        rho=1,
+        rho=100,
         lambda_0=lambda_0,
         lambda_1=lambda_1,
         lambda_2=lambda_2,
