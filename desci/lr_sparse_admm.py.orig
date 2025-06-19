@@ -72,13 +72,19 @@ def update_L(
 
 
 def update_S(U, V, Theta, Gamma, rho):
+<<<<<<< HEAD
     S = (U+V-(Theta+Gamma)/rho)/2
     # JM: Ok, I should update the document with this operation
     return S.clip(0)
+||||||| 0333123
+    S = (U+V-(Theta+Gamma)/rho)/2
+    return S.clip(0)
+=======
     S = (U + V - (Theta + Gamma) / rho) / 2
     return S
 
 
+>>>>>>> refs/remotes/origin/desci
 # @njit
 
 
@@ -87,6 +93,12 @@ def update_U(S, Theta, lambda_1, rho):
     return soft_thresh(U_a, lambda_1 / rho)
 
 
+<<<<<<< HEAD
+def update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3, max_it=50,
+               epsilon=1e-3, delta=1e-3, svd_l=20, patch_size=16):
+||||||| 0333123
+def update_V_B(X, L, V, S, Gamma, Lambda, Delta, rho, lambda_3, max_it=50, epsilon=1e-3, delta=1e-3, svd_l=200, patch_size=4):
+=======
 def update_V_B(
     X,
     L,
@@ -103,6 +115,7 @@ def update_V_B(
     svd_l=20,
     patch_size=4,
 ):
+>>>>>>> refs/remotes/origin/desci
 
     Va = ((Gamma + Lambda) / rho + S + 0.5 * (X - L)) / 3
     Va_tilde, patch_locations = extract_sparse_patches(Va, patch_size, stride_ratio=2)
@@ -177,9 +190,15 @@ def ADMM(
             Delta = Delta + rho * (B - L)
             Lambda = Lambda + rho * (X - B - V)
 
+<<<<<<< HEAD
             primal_res = np.array([S - U, S - V, B - L, X-B-V])
+
             # JM: **dual residual hasn't been updated: it's missing one entry; see pdf document**
+||||||| 0333123
+            primal_res = np.array([S - U, S - V, B - L, X-B-V])
+=======
             primal_res = np.array([S - U, S - V, B - L, X - B - V])
+>>>>>>> refs/remotes/origin/desci
             dual_res = -rho * np.array([U - U_old + V - V_old, B - B_old])
 
             primal_res_norm = np.linalg.norm(primal_res)
@@ -246,6 +265,13 @@ if __name__ == "__main__":
 
     M, N, F = mask.shape
 
+<<<<<<< HEAD
+    X, S, L, U, V, B, crits = ADMM( y, mask, rho=1, lambda_0=1/(M*N), lambda_1=1/(M*N*F), lambda_2=0.2, lambda_3=0.05, MAX_IT=2000)
+||||||| 0333123
+    X, S, L, U, V, B, crits = ADMM(
+        y, mask, rho=1, lambda_0=15, lambda_1=0.5, lambda_2=2.0, lambda_3=0.5, MAX_IT=2000
+    )
+=======
     X, S, L, U, V, B, crits = ADMM(
         y,
         mask,
@@ -258,6 +284,7 @@ if __name__ == "__main__":
     )
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
     print(f"PSNR:", psnr)
+>>>>>>> refs/remotes/origin/desci
     visualize_cube(X)
     # # primal_res = np.array([S-U, S-V, B-L])
     # # visualize_cube((B+S))
