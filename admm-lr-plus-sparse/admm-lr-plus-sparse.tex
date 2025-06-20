@@ -190,10 +190,7 @@ Given the above assumption, we can formulate the reconstruction problem as
   +
   \lambda_2 \big\|\overline{B}\big\|_{\star}
   +
-  \lambda_3 \big\|\widetilde{S}\big\|_{\star} 
-  + 
-  \text{i}_{\mathbb{R}_+}(S)
-  \,,
+  \lambda_3 \big\|\widetilde{S}\big\|_{\star}\,,
 \end{align}
 where 
 \begin{itemize}
@@ -206,12 +203,6 @@ where
 
   \item $\|\cdot\|_{\star}$ is the nuclear-norm (Schatten $1$-norm), which is
     the $\ell_1$-norm applied to the singular values of the matrix.
-
-
-  \item $\text{i}_{\mathbb{R}_+}(\cdot)$ is the indicator function, applied
-    componentwise, of the nonnegative numbers, i.e.,
-    $\text{i}_{\mathbb{R}_+}(x) = 0$ if $x \geq 0$, and
-    $\text{i}_{\mathbb{R}_+}(x) = +\infty$ if $x < 0$.
 
   \item $\lambda_0, \lambda_1, \lambda_2, \lambda_3 \geq 0$ are nonnegative
     hyperparameters.
@@ -236,8 +227,6 @@ Problem~\eqref{eq:prob} is thus equivalent to
     \lambda_2 \big\|\overline{L}\big\|_{\star}
     +
     \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-    +
-    \text{i}_{\mathbb{R}_+}(S)
     \\
     \text{subject to}
     &
@@ -263,8 +252,6 @@ The augmented Lagrangian of~\eqref{eq:reformulation} is
   \lambda_2 \big\|\overline{L}\big\|_{\star}
   +
   \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-  +
-  \text{i}_{\mathbb{R}_+}(S)
   \\
   +
   \langle\Theta, S - U\rangle
@@ -319,8 +306,6 @@ $\big(\Theta^0, \Gamma^0, \Delta^0, \Lambda^0\big)$, ADMM iterates for $k = 0, 1
       &\qquad
       +
       \bigg[
-        \text{i}_{\mathbb{R}_+}(S)
-        +
         \langle\Theta^k, S - U^k\rangle
         +
         \langle\Gamma^k, S - V^k\rangle
@@ -536,7 +521,6 @@ The problem in $S$ in~\eqref{eq:admm_applied_sl} is
   S^{k+1} 
   &=
   \underset{S}{\arg\min} \,\,\,
-  \text{i}_{\mathbb{R}_+}(S)
   \langle\Theta^k, S - U^k\rangle
   +
   \langle\Gamma^k, S - V^k\rangle
@@ -548,13 +532,10 @@ The problem in $S$ in~\eqref{eq:admm_applied_sl} is
   \|S - V^k\|_{F}^2
   \\ 
   &=
-  \max\bigg\{
   \frac{1}{2}
-  \Big(U^k + V^k - \frac{1}{\rho}\Theta^k - \frac{1}{\rho}\Gamma^k\Big),\, 0
-    \bigg\}
-  \,,
+  \Big(U^k + V^k - \frac{1}{\rho}\Theta^k - \frac{1}{\rho}\Gamma^k\Big)\,,
 \end{align*}
-where the maximum is applied componentwise.
+where we simply equated the derivative w.r.t.\ $S$ to zero. 
 
 \mypar{Updating $\bm{L}$}
 The problem in $L$ in~\eqref{eq:admm_applied_sl} can be rewritten as
@@ -878,9 +859,14 @@ ignored terms that do not depend on $V$, rescaled the objective function, and
 defined
 \begin{align*}
   V_a := 
-  \frac{1}{3}\bigg[\frac{2}{\rho}\Gamma^k + \frac{1}{\rho}\Lambda^k +
-    \frac{1}{\rho}\Delta^k  + 2S^{k+1}
-  + \frac{4}{\rho}\big(X^{k+1} - L^{k+1}\big)\bigg]\,.
+  \frac{1}{3}
+  \bigg[
+    X^{k+1} - L^{k+1}
+    +
+    2S^{k+1}
+    +
+    \frac{1}{\rho}(\Delta^k + \Lambda^k + 2\Gamma^{k})
+  \bigg]\,.
 \end{align*}
 Notice~\eqref{eq:updatevb3} has exactly the same format as the update of $L$
 in~\eqref{eq:probL1}. The reshaping of the tensors, however, is different.
@@ -897,9 +883,14 @@ Algorithm~\ref{alg:updateL} and is described in Algorithm~\ref{alg:updateV}.
   randomized SVD ($\ell$ and a small tolerance), patch size $P$.
   \State Compute 
   $ V_a = 
-  \frac{1}{3}\Big[\frac{2}{\rho}\Gamma^k + \frac{1}{\rho}\Lambda^k +
-    \frac{1}{\rho}\Delta^k  + 2S^{k+1}
-  + \frac{4}{\rho}\big(X^{k+1} - L^{k+1}\big)\Big] \in \mathbb{R}^{M\times N\times F}$
+  \frac{1}{3}
+  \Big[
+    X^{k+1} - L^{k+1}
+    +
+    2S^{k+1}
+    +
+  \frac{1}{\rho}(\Delta^k + \Lambda^k + 2\Gamma^{k})\Big]
+    \in \mathbb{R}^{M\times N\times F}$
   \State Reshape $V_a$ into $\widetilde{V}_a \in \mathbb{R}^{P \times L}$ by
   extracting $L$ patches of size $\sqrt{P} \times \sqrt{P}$ from $V_a$ and vectorizing
   them into the columns of $\widetilde{V}_a$
