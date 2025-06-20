@@ -103,7 +103,7 @@ def update_V_B(
     patch_size=4,
 ):
 
-    Va = ((2*Gamma + Lambda + Delta) / rho + 2 * S + 4*(X-L)/rho) / 3
+    Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
     Va_tilde, patch_locations = extract_sparse_patches(
         Va, patch_size, stride_ratio=2)
 
