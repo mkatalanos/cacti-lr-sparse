@@ -247,16 +247,17 @@ if __name__ == "__main__":
     y = phi(x, mask)
 
     lambda_0 = 15
-    lambda_1 = 0.17
-    lambda_2 = 2.0
+    lambda_1 = 0.5
+    lambda_2 = 0.5
     lambda_3 = 0.5
+    rho = 1
 
     M, N, F = mask.shape
 
     X, S, L, U, V, B, crits = ADMM(
         y,
         mask,
-        rho=100,
+        rho=rho,
         lambda_0=lambda_0,
         lambda_1=lambda_1,
         lambda_2=lambda_2,

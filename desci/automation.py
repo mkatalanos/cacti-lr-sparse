@@ -19,7 +19,7 @@ def process_args():
     parser.add_argument("-r", "--rho", type=float, default=1)
     parser.add_argument("-f", "--frames", type=int, default=8)
     parser.add_argument("-b", "--block", type=float, default=0.2)
-    parser.add_argument("-i", "--iterations", type=int, default=2000)
+    parser.add_argument("-i", "--iterations", type=int, default=500)
     args = parser.parse_args()
     return args
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     print(
         f"Running with:, {lambda_0=}, {lambda_1=}, {
-            lambda_2=}, {lambda_3=}, {frames=}, {rho=}, {block=}"
+            lambda_2=}, {lambda_3=}, {frames=}, {rho=}, {block=}, {MAX_IT=}"
     )
 
     X, S, L, U, V, B, crits = ADMM(
@@ -66,12 +66,12 @@ if __name__ == "__main__":
         lambda_1=lambda_1,
         lambda_2=lambda_2,
         lambda_3=lambda_3,
-        MAX_IT=2000,
+        MAX_IT=MAX_IT,
     )
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
 
-    out_title = f"l0_{lambda_0}_l1_{lambda_1}_l2_{
-        lambda_2}_l3_{lambda_3}_r_{rho}_it_{MAX_IT}"
+    out_title = f"out/l0_{lambda_0:.2e}_l1_{lambda_1:.2e}_l2_{
+        lambda_2:.2e}_l3_{lambda_3:.2e}_r_{rho:.2e}_it_{MAX_IT}"
 
     columns = ["|Y-H(X)|", "|U|_1", "|L|_*", "|V|_*",
                "|S-U|", "|S-V|", "|X-B-V|"]
