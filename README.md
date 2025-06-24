@@ -1,4 +1,4 @@
-- **Deadline:** 2025-07-01
+- **Deadline:** 2025-07-15
 - **Title:** Snapshot Compressive Imaging with Foreground-Background Separation
 
 # Main idea
