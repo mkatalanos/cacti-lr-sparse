@@ -36,7 +36,6 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
     C1 = rho * (B + V - Lambda / rho)
     C2 = np.multiply(mask, Y[:, :, np.newaxis])
-    # JM: **Should be C3 = C1 + lambda_0*C2**
     C3 = C1 + lambda_0 * C2
 
     mff = lambda_0 * np.multiply(mask, mask)
@@ -47,7 +46,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
 
 def update_L(
-    B, Delta, rho, lambda_2, mask, delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=10
+    B, Delta, rho, lambda_2, mask, delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=3
 ):
     M, N, F = mask.shape
     La = B + Delta / rho
@@ -99,7 +98,7 @@ def update_V_B(
     max_it=50,
     epsilon=1e-3,
     delta=1e-3,
-    svd_l=20,
+    svd_l=5,
     patch_size=4,
 ):
 
@@ -145,10 +144,13 @@ def ADMM(
     B_old = B.copy()
     V_old = V.copy()
 
-    Theta = np.zeros_like(mask, dtype=np.float64)
-    Delta = np.zeros_like(mask, dtype=np.float64)
-    Gamma = np.zeros_like(mask, dtype=np.float64)
-    Lambda = np.zeros_like(mask, dtype=np.float64)
+    Theta = np.random.randn(*mask.shape)
+    Delta = np.random.randn(*mask.shape)
+    Gamma = np.random.randn(*mask.shape)
+    Lambda = np.random.randn(*mask.shape)
+    # Delta = np.zeros_like(mask, dtype=np.float64)
+    # Gamma = np.zeros_like(mask, dtype=np.float64)
+    # Lambda = np.zeros_like(mask, dtype=np.float64)
 
     # JM: Just to make memory fixed from the beginning (even though it's a small
     # footprint), I would declare crits as a vector/array of tuples with MAX_IT entries.
@@ -246,13 +248,13 @@ if __name__ == "__main__":
     mask = generate_mask(x.shape, 0.2)
     y = phi(x, mask)
 
-    lambda_0 = 15
-    lambda_1 = 0.5
-    lambda_2 = 0.5
-    lambda_3 = 0.5
-    rho = 1
-
     M, N, F = mask.shape
+
+    lambda_0 = 1000*M*N*F
+    lambda_1 = 0.001 #10*M*N*F
+    lambda_2 = 0.001
+    lambda_3 = 0.001
+    rho = 50
 
     X, S, L, U, V, B, crits = ADMM(
         y,
