@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 import torch
 from torch.utils.data import Dataset
 
-from utils.physics import generate_mask, phi
+from utils.physics import generate_mask, phi, phit
 
 
 def load_frames(fpath: str) -> NDArray:
@@ -42,12 +42,26 @@ class VideoDataset(Dataset):
         return len(self.collected_slices)
 
     def __getitem__(self, idx):
-        x = self.collected_slices[idx]
+        x = self.collected_slices[idx].transpose(1, 2, 0)
+
+        M, N, F = x.shape
 
         # Generate random mask with idx as seed
-        mask = generate_mask(x.shape, 0.2, idx)
+        mask = generate_mask(x.shape, self.block_rate, idx)
 
-        y = phi(x, mask)
+        y = phi(x, mask).reshape(M, N)
+
+        mff = np.multiply(mask, mask, dtype=np.float64).sum(axis=2)
+        mff[mff == 0] = 1e-8
+
+        phiphit_inv = np.divide(y, mff)
+
+        inverted = np.multiply(mask, phiphit_inv[:, :, np.newaxis])
+
+        x = x.transpose(2, 0, 1)
+        inverted = inverted.transpose(2, 0, 1)
+
+        return inverted, x
 
 
 if __name__ == "__main__":
@@ -55,3 +69,6 @@ if __name__ == "__main__":
 
     video = load_frames(
         "./dataset/casia_angleview_p01_run_a1.mp4")
+    collected_slices = slice_video(video)
+    idx = 2
+    x = collected_slices[idx].transpose(1, 2, 0)
