@@ -3,6 +3,7 @@ from typing import Any, Callable, Tuple
 import numpy as np
 
 # from numba import njit
+import cvxpy as cp
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
 from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
@@ -29,20 +30,48 @@ def bar(x: NDArray) -> NDArray:
     return x_bar
 
 
-# @njit
 def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
+    X = cp.Variable((M, N, F))
+    objective = cp.Minimize(
+        cp.sum_squares(Y-cp.multiply(X, mask).sum(axis=2)) +
+        (rho/2) * cp.sum_squares(X-(B+V-Lambda/rho))
+    )
+    problem = cp.Problem(objective)
+    problem.solve()
+    return X.value
 
-    M, N, F = mask.shape
+# def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
+#
+#     M, N, F = mask.shape
+#
+#     C1 = (rho/lambda_0)*(B+V-Lambda/rho)
+#     C2 = np.multiply(mask, Y[:, :, np.newaxis])
+#     C3 = C1+C2
+#     C4 = np.multiply(mask, C3).sum(axis=2)
+#
+#     DD = np.multiply(mask, mask).sum(axis=2)
+#     denom = np.ones((M, N))+DD*lambda_0/rho
+#     denom[denom == 0] = 1e-8
+#     C5 = np.divide(C4, denom)
+#     C6 = np.multiply(mask, C5[:, :, np.newaxis])
+#
+#     X = (C3-C6*lambda_0/rho)*lambda_0/rho
+#     return X
 
-    C1 = rho * (B + V - Lambda / rho)
-    C2 = np.multiply(mask, Y[:, :, np.newaxis])
-    C3 = C1 + lambda_0 * C2
-
-    mff = lambda_0 * np.multiply(mask, mask)
-
-    X = np.multiply(np.divide(1, mff + rho), C3)
-
-    return X
+# @njit
+# def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
+#
+#     M, N, F = mask.shape
+#
+#     C1 = rho * (B + V - Lambda / rho)
+#     C2 = np.multiply(mask, Y[:, :, np.newaxis])
+#     C3 = C1 + lambda_0 * C2
+#
+#     mff = lambda_0 * np.multiply(mask, mask)
+#
+#     X = np.multiply(np.divide(1, mff + rho), C3)
+#
+#     return X
 
 
 def update_L(
@@ -245,16 +274,16 @@ def ADMM(
 if __name__ == "__main__":
     x = load_video(
         "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:38]
-    mask = generate_mask(x.shape, 0.2)
+    mask = generate_mask(x.shape, 0.6)
     y = phi(x, mask)
 
     M, N, F = mask.shape
 
-    lambda_0 = 1000*M*N*F
-    lambda_1 = 0.001 #10*M*N*F
-    lambda_2 = 0.001
-    lambda_3 = 0.001
-    rho = 50
+    lambda_0 = 1
+    lambda_1 = 0.5
+    lambda_2 = 0.5
+    lambda_3 = 0.5
+    rho = 2
 
     X, S, L, U, V, B, crits = ADMM(
         y,

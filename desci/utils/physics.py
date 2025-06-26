@@ -147,8 +147,8 @@ def phi_from_mask(mask: NDArray[np.uint8]):
     H, W, B = mask.shape
 
     mask_flat = mask.reshape(H * W, B)
-    diag_matrices = [sp.diags(mask_flat[:, b], dtype=np.uint8) for b in range(B)]
+    diag_matrices = [np.diag(mask_flat[:, b]) for b in range(B)]
 
-    Phi = sp.hstack(diag_matrices, format="coo", dtype=np.uint8)
+    Phi = np.hstack(diag_matrices)
 
     return Phi
