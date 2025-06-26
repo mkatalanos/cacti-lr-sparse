@@ -1,3 +1,4 @@
+albumentations
 cvxpy
 hdbscan
 imageio[ffmpeg]
