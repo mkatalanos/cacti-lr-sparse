@@ -61,7 +61,7 @@ def phit(y, mask):
     """
     H, W, T = mask.shape
     y = y.reshape(H, W)
-    x = np.repeat(y[:, :, np.newaxis], T, axis=2)
+    x = np.multiply(mask, y[:, :, np.newaxis])
     return x.reshape(-1)
 
 
