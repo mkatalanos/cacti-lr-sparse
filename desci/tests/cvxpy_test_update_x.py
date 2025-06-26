@@ -32,7 +32,7 @@ X_flat = X1.flatten("C")
 inner_product = Lambda.flatten() @ (X_flat-B.flatten()-V.flatten())
 
 objective = cp.Minimize(
-    cp.sum_squares(Y-H(X1)) +
+    cp.sum_squares(Y.flatten("C")-H(X1).flatten("C")) +
     inner_product +
     (rho/2) * cp.sum_squares(X1-B-V)
 )
@@ -46,7 +46,7 @@ problem1.solve()
 X2 = cp.Variable((M, N, F))
 
 objective = cp.Minimize(
-    cp.sum_squares(Y-H(X2)) +
+    cp.sum_squares(Y.flatten("C")-H(X2).flatten("C")) +
     (rho/2) * cp.sum_squares(X2-(B+V-Lambda/rho))
 )
 

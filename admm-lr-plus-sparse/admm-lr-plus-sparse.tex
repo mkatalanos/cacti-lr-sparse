@@ -434,8 +434,8 @@ obtain a closed-form solution for updating $X$:
 \begin{align}
   x^{k+1}
   =
-  \left(\lambda_0 H^\top H + \rho I_{MNF \times MNF}\right)^{-1}
-  \left[\lambda_0 H^\top y + \rho x_a\right]\,,
+  \left(H^\top H + \frac{\rho}{\lambda_0} I_{MNF \times MNF}\right)^{-1}
+  \left[H^\top y + \frac{\rho}{\lambda_0} x_a\right]\,,
   \label{eq:probxclosedformvec}
 \end{align}
 where $I_{MNF \times MNF}$ is the identity matrix. 
@@ -476,44 +476,78 @@ N}$ to frame $f$. In other words,
 where $\odot$ represents the pointwise (Hadamard) product, $m_f :=
 \text{vec}(M_f)$, and $\text{Diag}(\cdot)$ represents a diagonal matrix with a
 specified vector in the diagonal. The matrix $H$ is indicated as well as the
-vectorization of the tensor $X$. We can now see that $H^\top H$
-in~\eqref{eq:probxclosedformvec} will be a diagonal matrix:
+vectorization of the tensor $X$. The matrix $H^\top H$
+in~\eqref{eq:probxclosedformvec} is a block matrix with diagonal blocks.
+However, using the matrix inversion lemma~\cite{Boyd04-ConvexOptimization}, we can
+work instead with $H H^\top$, which is diagonal: 
 \begin{align*}
-  H^\top H = \text{Diag}\left(\begin{bmatrix}
-    m_1^2 \\ \vdots  \\m_F^2
-  \end{bmatrix}\right)\,,
+  HH^\top  = \sum_{f=1}^{F} \text{Diag}(m_f^2)\,,
 \end{align*}
 where $m_f^2 := m_f \odot m_f$ denotes the vector $m_f$ with squared entries.
+Note that the diagonal of $HH^\top$ can be computed before the execution of the
+algorithm. The matrix inversion lemma will give us
+\begin{align}
+  \label{eq:matrixinversionlemma}
+  \left(H^\top H + \frac{\rho}{\lambda_0} I_{MNF \times MNF}\right)^{-1}
+  =
+  \frac{\lambda_0}{\rho}
+  \bigg[
+    I - \frac{\lambda_0}{\rho}
+    H^\top\big( I + \frac{\lambda_0}{\rho}H H^\top\big)^{-1}H
+  \bigg]\,,
+\end{align}
+where we omitted the dimensions of the identity matrices for simplicity. Note
+that the first one in the righthand side of~\eqref{eq:matrixinversionlemma} is
+$MNF \times MNF$, while the second one is $MN \times MN$.
+Plugging~\eqref{eq:matrixinversionlemma} into~\eqref{eq:probxclosedformvec}
+yields
+\begin{align}
+  x^{k+1}
+  =
+  \frac{\lambda_0}{\rho}
+  \bigg[
+    I - \frac{\lambda_0}{\rho}
+    H^\top\big( I + \frac{\lambda_0}{\rho}H H^\top\big)^{-1}H
+  \bigg]
+  \left(H^\top y + \frac{\rho}{\lambda_0} x_a\right)\,.
+  \label{eq:probxclosedformvecmil}
+\end{align}
 Undoing the vectorization operations, we can compute the result
-of~\eqref{eq:probxclosedformvec} from right to left according to
-Algorithm~\ref{alg:updateX}. In step~\ref{subAlg:lastStep}, $\oslash$ denotes
+of~\eqref{eq:probxclosedformvecmil} from right to left according to
+Algorithm~\ref{alg:updateX}. In step~\ref{subAlg:inversestep}, $\oslash$ denotes
 the elementwise division, and $1_{M\times N}$ the matrix of all-ones in
 $\mathbb{R}^{M\times N}$.
 
 \begin{algorithm}
-  \caption{Update of $X$ in~\eqref{eq:probxclosedformvec} for
+  \caption{Update of $X$ in~\eqref{eq:probxclosedformvecmil} for
   conventional SCI}
   \label{alg:updateX}
   \begin{algorithmic}[1]
   %\small
-    \State $C_1 = \rho (B^k + V^k - \frac{1}{\rho}\Lambda^k) \in \mathbb{R}^{M\times N\times F}$
+    \algrenewcommand\algorithmicrequire{\textbf{Before the algorithm:}}
+    \Require Compute diagonal of $HH^\top$: $D_{HH} = \sum_{f=1}^{F} M_f^2 \in \mathbb{R}^{M\times N}$
+    \algrenewcommand\algorithmicrequire{\textbf{During the algorithm:}}
+    \Require
+    \State $C_1 = \frac{\rho}{\lambda_0} (B^k + V^k - \frac{1}{\rho}\Lambda^k) \in \mathbb{R}^{M\times N\times F}$
     \State $C_2 \in \mathbb{R}^{M\times N\times F}$ such that each slice
     $(C_2)_{:, :, f} = M_f \odot Y$, $f = 1, \ldots, F$
-    \State $C_3 = C_1 + \lambda_0 C_2 \in \mathbb{R}^{M \times N\times F}$
-    \State $X^{k+1} \in \mathbb{R}^{M\times N\times F}$ such that each slice
-    $X^{k+1}_{:, :, f} = \left[1\oslash(\lambda_0 M_f^2 + \rho 1_{M\times N})\right]
-    \odot {C_3}_{:, :, f}$,
-    $f=1, \ldots, F$
-    \label{subAlg:lastStep}
+    \State $C_3 = C_1 + C_2 \in \mathbb{R}^{M \times N\times F}$
+    \State $C_4 = \sum_{f=1}^{F} M_f \odot (C_3)_{:, :, f} \in \mathbb{R}^{M\times N}$
+    \State $C_5 = C_4 \oslash (1_{M\times N} + \frac{\lambda_0}{\rho}D_{HH}) \in \mathbb{R}^{M\times N}$
+    \label{subAlg:inversestep}
+    \State $C_6 \in \mathbb{R}^{M\times N\times F}$ such that each slice
+    $(C_6)_{:, :, f} = M_f \odot C_5$, $f = 1, \ldots, F$
+    \State $X^{k+1} = \frac{\lambda_0}{\rho}(C_3 - \frac{\lambda_0}{\rho}C_6) \in \mathbb{R}^{M\times
+    N\times F}$
   \end{algorithmic}
 \end{algorithm}
 This code can run fast if
 \begin{itemize}
-  \item Memory to store $C_1, C_2, C_3, X^{k+1}$ is preallocated
+  \item Memory to store $C_1, \ldots, C_6, X^{k+1}$ is preallocated
 
   \item Operations in each step are parallelized, e.g., in a GPU.
 \end{itemize}
-The total operation count is roughly $8MNF$ FLOPs.
+The total operation count is roughly $10MNF + 3MN$ FLOPs.
 
 \mypar{Updating $\bm{S}$}
 The problem in $S$ in~\eqref{eq:admm_applied_sl} is
