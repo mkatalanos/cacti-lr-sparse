@@ -2,6 +2,7 @@ import cvxpy as cp
 import numpy as np
 
 from utils.physics import generate_mask
+from lr_sparse_admm import update_X
 # Fixed data
 
 M, N, F = 10, 10, 3
@@ -58,3 +59,12 @@ x2 = X2.value
 print(f"{np.linalg.norm(x1-x2)=}")
 
 np.testing.assert_allclose(x1, x2)
+
+# -------------
+# update_X
+
+x3 = update_X(Y, B, V, Lambda, mask, rho, lambda_0)
+
+print(f"{np.linalg.norm(x1-x3)=}")
+
+np.testing.assert_allclose(x1, x3)
