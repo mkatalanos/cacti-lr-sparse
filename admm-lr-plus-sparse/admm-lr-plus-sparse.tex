@@ -549,6 +549,109 @@ This code can run fast if
 \end{itemize}
 The total operation count is roughly $10MNF + 3MN$ FLOPs.
 
+\mypar{\textcolor{red}{Note: row vector representation}}
+Above we assumed that vectors are represented as columns and that
+vectorizations are column-major. If we assume instead that vectors are
+represented as rows and vectorizations are row-major, we modify the above steps
+as follows:
+\begin{align*}
+  X_a &:= B^k + V^k - \frac{1}{\rho}\Lambda^k \in \mathbb{R}^{F \times M \times N}
+  \\
+  x_a &:= \text{vec}(X_a) \in \mathbb{R}^{1\times MNF}\,.
+\end{align*}
+Problem~\eqref{eq:probx1} is equivalent to
+\begin{align*}
+  \underset{x \in \mathbb{R}^{1\times FMN}}{\text{minimize}}\,\,\,
+  \frac{\lambda_0}{2}
+  \|y - xH\|_2^2
+  +
+  \frac{\rho}{2}
+  \| x - x_a\|_2^2\,,
+\end{align*}
+where $H \in \mathbb{R}^{FMN \times MQ}$ is a matricial representation of
+$\mathcal{H}$. And~\eqref{eq:probxclosedformvec} is now
+\begin{align}
+  x^{k+1}
+  =
+  \left[yH^\top + \frac{\rho}{\lambda_0} x_a\right]
+  \left(HH^\top + \frac{\rho}{\lambda_0} I_{FMN \times FMN}\right)^{-1}\,.
+  \label{eq:probxclosedformvecrm}
+\end{align}
+And given $Y \in \mathbb{R}^{M\times N}$, $Z \in \mathbb{R}^{F\times M\times
+N}$, and a set of masks $M_f \in \mathbb{R}^{M\times N}$, we now have
+\begin{align*}
+  &\qquad
+  Y = \sum_{f=1}^{F} M_f \odot Z_{f,:,:} 
+  \\
+  \Longleftrightarrow &\qquad
+  \text{vec}(Y)
+  =
+  \sum_{f=1}^{F} \text{vec}(Z_{f,:,:}) \odot \text{vec}(M_f) 
+  \\
+  \Longleftrightarrow &\qquad
+  \underbrace{\text{vec}(Y)}_{y}
+  =
+  \underbrace{
+  \begin{bmatrix}
+    \text{vec}(Z_{1, :, :})
+    &
+    \cdots
+    &
+    \text{vec}(Z_{F, :, :})
+  \end{bmatrix}}_{z}
+  \underbrace{
+  \begin{bmatrix}
+    \text{Diag}(m_1) \\ \vdots \\ \text{Diag}(m_F)
+  \end{bmatrix}
+  }_{H}
+\end{align*}
+The matrix $HH^\top$ is not diagonal, but $H^\top H$ is:
+\begin{align*}
+  H^\top H  = \sum_{f=1}^{F} \text{Diag}(m_f^2)\,.
+\end{align*}
+Finally, \eqref{eq:probxclosedformvecmil} becomes
+\begin{align}
+  x^{k+1}
+  =
+  \frac{\lambda_0}{\rho}
+  \underbrace{\left(y H^\top + \frac{\rho}{\lambda_0} x_a\right)}_{c_3}
+  \bigg[
+    I - \frac{\lambda_0}{\rho}
+    H\big( I + \frac{\lambda_0}{\rho}H^\top H\big)^{-1}H^\top
+  \bigg]\,.
+  \label{eq:probxclosedformvecmilrm}
+\end{align}
+Note that the inner identity matrix is $MN \times MN$, while the outer one is
+$MNF \times MNF$. And Algorithm~\ref{alg:updateX} is modified as
+Algorithm~\ref{alg:updateXrm}
+\begin{algorithm}
+  \caption{Update of $X$ in~\eqref{eq:probxclosedformvecmilrm} for
+  conventional SCI: row majorization}
+  \label{alg:updateXrm}
+  \begin{algorithmic}[1]
+  %\small
+    \algrenewcommand\algorithmicrequire{\textbf{Before the algorithm:}}
+    \Require Compute diagonal of $H^\top H$: $D_{HH} = \sum_{f=1}^{F} M_f^2 \in \mathbb{R}^{M\times N}$
+    \algrenewcommand\algorithmicrequire{\textbf{During the algorithm:}}
+    \Require
+    \State $C_1 = \frac{\rho}{\lambda_0} (B^k + V^k - \frac{1}{\rho}\Lambda^k) \in \mathbb{R}^{F\times M\times N}$
+    \Comment{$\frac{\rho}{\lambda_0}x_a$}
+    \State $C_2 \in \mathbb{R}^{F\times M\times N}$ such that each slice
+    $(C_2)_{f,:, :} = M_f \odot Y$, $f = 1, \ldots, F$
+    \Comment{$y H^\top$}
+    \State $C_3 = C_1 + C_2 \in \mathbb{R}^{F\times M \times N}$
+    \Comment{$y H^\top + \frac{\rho}{\lambda_0}x_a$}
+    \State $C_4 = \sum_{f=1}^{F} M_f \odot (C_3)_{f, :, :} \in \mathbb{R}^{M\times N}$
+    \Comment{$c_3 H$}
+    \State $C_5 = C_4 \oslash (1_{M\times N} + \frac{\lambda_0}{\rho}D_{HH}) \in \mathbb{R}^{M\times N}$
+    \label{subAlg:inversesteprm}
+    \State $C_6 \in \mathbb{R}^{F\times M\times N}$ such that each slice
+    $(C_6)_{f, :, :} = M_f \odot C_5$, $f = 1, \ldots, F$
+    \State $X^{k+1} = \frac{\lambda_0}{\rho}(C_3 - \frac{\lambda_0}{\rho}C_6) \in \mathbb{R}^{F\times
+    M\times N}$
+  \end{algorithmic}
+\end{algorithm}
+
 \mypar{Updating $\bm{S}$}
 The problem in $S$ in~\eqref{eq:admm_applied_sl} is
 \begin{align*}
