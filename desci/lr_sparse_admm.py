@@ -234,6 +234,8 @@ def ADMM(
             else:
                 rho = rho
             # rho=rho*(primal_res_norm/dual_res_norm)
+            if rho<0.001:
+                break
 
             U_old = U.copy()
             V_old = V.copy()
