@@ -50,8 +50,8 @@ if __name__ == "__main__":
 
     lambda_0 /= M * N
     lambda_1 /= M * N * F
-    lambda_2 /= 10
-    lambda_3 /= 20
+    lambda_2 /= 3
+    lambda_3 /= 5
 
     print(
         f"Running with:, {lambda_0=}, {lambda_1=}, {

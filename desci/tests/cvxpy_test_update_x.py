@@ -132,7 +132,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
     C6 = np.multiply(mask, C5[np.newaxis, :, :])
 
     X = (C3-C6*lambda_0/rho)*lambda_0/rho
-    return X.transpose(1,2,0)
+    return X.transpose(1, 2, 0)
 
 
 x_update = update_X(Y, B, V, Lambda, mask, rho, lambda_0)

@@ -31,47 +31,23 @@ def bar(x: NDArray) -> NDArray:
 
 
 def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
-    X = cp.Variable((M, N, F))
-    objective = cp.Minimize(
-        cp.sum_squares(Y-cp.multiply(X, mask).sum(axis=2)) +
-        (rho/2) * cp.sum_squares(X-(B+V-Lambda/rho))
-    )
-    problem = cp.Problem(objective)
-    problem.solve()
-    return X.value
 
-# def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
-#
-#     M, N, F = mask.shape
-#
-#     C1 = (rho/lambda_0)*(B+V-Lambda/rho)
-#     C2 = np.multiply(mask, Y[:, :, np.newaxis])
-#     C3 = C1+C2
-#     C4 = np.multiply(mask, C3).sum(axis=2)
-#
-#     DD = np.multiply(mask, mask).sum(axis=2)
-#     denom = np.ones((M, N))+DD*lambda_0/rho
-#     denom[denom == 0] = 1e-8
-#     C5 = np.divide(C4, denom)
-#     C6 = np.multiply(mask, C5[:, :, np.newaxis])
-#
-#     X = (C3-C6*lambda_0/rho)*lambda_0/rho
-#     return X
+    M, N, F = mask.shape
+    mask = mask.transpose(2, 0, 1)
 
-# @njit
-# def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
-#
-#     M, N, F = mask.shape
-#
-#     C1 = rho * (B + V - Lambda / rho)
-#     C2 = np.multiply(mask, Y[:, :, np.newaxis])
-#     C3 = C1 + lambda_0 * C2
-#
-#     mff = lambda_0 * np.multiply(mask, mask)
-#
-#     X = np.multiply(np.divide(1, mff + rho), C3)
-#
-#     return X
+    C1 = (rho/lambda_0)*(B+V-Lambda/rho).transpose(2, 0, 1)
+    C2 = np.multiply(mask, Y[np.newaxis, :, :])
+    C3 = C1+C2
+    C4 = np.multiply(mask, C3).sum(axis=0)
+
+    DD = np.multiply(mask, mask).sum(axis=0)
+
+    denom = np.ones((M, N))+DD*lambda_0/rho
+    C5 = np.divide(C4, denom)
+    C6 = np.multiply(mask, C5[np.newaxis, :, :])
+
+    X = (C3-C6*lambda_0/rho)*lambda_0/rho
+    return X.transpose(1, 2, 0)
 
 
 def update_L(
@@ -234,7 +210,7 @@ def ADMM(
             else:
                 rho = rho
             # rho=rho*(primal_res_norm/dual_res_norm)
-            if rho<0.001:
+            if rho < 0.001:
                 break
 
             U_old = U.copy()
@@ -275,7 +251,7 @@ def ADMM(
 
 if __name__ == "__main__":
     x = load_video(
-        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:38]
+        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:33]
     mask = generate_mask(x.shape, 0.6)
     y = phi(x, mask)
 
@@ -285,7 +261,7 @@ if __name__ == "__main__":
     lambda_1 = 0.5
     lambda_2 = 0.5
     lambda_3 = 0.5
-    rho = 2
+    rho = 1
 
     X, S, L, U, V, B, crits = ADMM(
         y,
