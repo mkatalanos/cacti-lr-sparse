@@ -33,7 +33,7 @@ X_flat = X1.flatten("C")
 inner_product = Lambda.flatten() @ (X_flat-B.flatten()-V.flatten())
 
 objective = cp.Minimize(
-    cp.sum_squares(Y-H(X1)) +
+    0.5*lambda_0*cp.sum_squares(Y-H(X1)) +
     inner_product +
     (rho/2) * cp.sum_squares(X1-B-V)
 )
@@ -47,7 +47,7 @@ problem1.solve()
 X2 = cp.Variable((M, N, F))
 
 objective = cp.Minimize(
-    cp.sum_squares(Y-H(X2)) +
+    0.5*lambda_0*cp.sum_squares(Y-H(X2)) +
     (rho/2) * cp.sum_squares(X2-(B+V-Lambda/rho))
 )
 
@@ -94,8 +94,11 @@ np.testing.assert_allclose(la.inv(lhs), rhs)
 X_a = (B + V - Lambda/rho)
 x_a = X_a.reshape(-1)
 
-x3 = la.inv(lambda_0 * H.T @ H + rho*np.eye(M*N*F)) @ \
-    (lambda_0 * H.T @ Y.reshape(-1) + rho * x_a)
+# x3 = la.inv(lambda_0 * H.T @ H + rho*np.eye(M*N*F)) @ \
+#     (lambda_0 * H.T @ Y.reshape(-1) + rho * x_a)
+
+x3 = la.solve(lambda_0 * H.T @ H + rho*np.eye(M*N*F), 
+    lambda_0 * H.T @ Y.reshape(-1) + rho * x_a)
 
 x_np_inv = x3.reshape(M, N, F)
 
