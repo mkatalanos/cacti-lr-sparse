@@ -21,7 +21,7 @@ def load_frames(fpath: str) -> NDArray:
 
 def slice_video(video: NDArray, B=20):
     F, M, N = video.shape
-    stride = B
+    stride = B//4
     subvids = []
     for i in range(0, F-B+1, stride):
         subvids.append(video[i:i+B])
@@ -37,6 +37,14 @@ class VideoDataset(Dataset):
 
         for video in videos:
             self.collected_slices += slice_video(video, B)
+
+    @staticmethod
+    def normalize(x):
+        return (x / 127.5) - 1
+
+    @staticmethod
+    def denormalize(x):
+        return (x + 1) * 127.5
 
     def __len__(self):
         return len(self.collected_slices)
@@ -61,7 +69,12 @@ class VideoDataset(Dataset):
         x = x.transpose(2, 0, 1)
         inverted = inverted.transpose(2, 0, 1)
 
-        return inverted, x
+        # Normalizing
+        x = VideoDataset.normalize(x)
+        inverted = VideoDataset.normalize(inverted)
+
+        sample = {"truth": x, "inverted": inverted}
+        return sample
 
 
 if __name__ == "__main__":

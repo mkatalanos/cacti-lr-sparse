@@ -10,6 +10,7 @@ numpy
 opencv-python
 pandas
 pytest
+pytorch-msssim
 PyWavelets
 scikit-image
 scikit-learn
