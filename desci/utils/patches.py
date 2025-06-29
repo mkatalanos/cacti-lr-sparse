@@ -44,7 +44,8 @@ def extract_sparse_patches(
     X: NDArray[np.uint8], patch_size: int, stride_ratio: int = 1
 ):
     # Implementation that uses preallocated memory
-    M, N, F = X.shape
+    F, M, N = X.shape
+
     p = patch_size
     P = p * p
 
@@ -55,17 +56,17 @@ def extract_sparse_patches(
     locations = []
 
     for f in range(F):
-        frame = X[:, :, f]
+        frame = X[f, :, :]
 
         # Extract patches
         for i in range(0, M - p + 1, stride):
             for j in range(0, N - p + 1, stride):
-                patch = frame[i : i + p, j : j + p]
+                patch = frame[i: i + p, j: j + p]
                 # Check if non-empty
                 if np.any(patch):
                     # Reshape and add if needed
                     patches.append(patch.flatten())
-                    locations.append((i, j, f))
+                    locations.append((f, i, j))
                     L += 1
 
     patches_mat = np.zeros((P, L))
@@ -100,21 +101,21 @@ def extract_patches(X: NDArray[np.uint8], patch_size: int) -> NDArray[np.uint8]:
 def reconstruct_sparse_patches(
     X_tilde, locations: List[Tuple[int, int, int]], shape: Tuple[int, int, int]
 ):
-    M, N, F = shape
+    F, M, N = shape
     P, L = X_tilde.shape
     p = int(np.sqrt(P))
     # Assuming non-overlapping patches
     X = np.zeros(shape)
 
-    for patch, (i, j, f) in zip(X_tilde.T, locations):
-        X[i : i + p, j : j + p, f] = patch.reshape(p, p)
+    for patch, (f, i, j) in zip(X_tilde.T, locations):
+        X[f, i: i + p, j: j + p] = patch.reshape(p, p)
 
     return X
 
 
 def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
     p = patch_size
-    M, N, F = shape
+    F, M, N = shape
     P, L = X_tilde.shape
 
     assert P == p * p, "Patch size mismatch."
@@ -122,7 +123,7 @@ def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
     num_patches_per_frame = (M // p) * (N // p)
     assert L == num_patches_per_frame * F, "L does not match expected patch count."
 
-    X_rec = np.zeros((M, N, F), dtype=np.uint8)
+    X_rec = np.zeros((F, M, N), dtype=np.uint8)
 
     for f in range(F):
         # Get patches for frame f
@@ -137,7 +138,7 @@ def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
         idx = 0
         for i in range(0, M, p):
             for j in range(0, N, p):
-                X_rec[i : i + p, j : j + p, f] = patches_reshaped[idx]
+                X_rec[f, i: i + p, j: j + p] = patches_reshaped[idx].T
                 idx += 1
 
     return X_rec

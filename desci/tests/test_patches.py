@@ -13,12 +13,12 @@ from utils.patches import (
 def sample_data():
     # Randomly generated data
     M, N, F = 256, 256, 8  # Frame size and number of frames
-    x = np.random.randint(0, 256, (M, N, F), dtype=np.uint8)
-    return x, (M, N, F)
+    x = np.random.randint(0, 256, (F, M, N), dtype=np.uint8)
+    return x, (F, M, N)
 
 
 def test_patch_extract_old(sample_data):
-    x, (M, N, F) = sample_data
+    x, (F, M, N) = sample_data
 
     # Extract patches
     patch_size = 4
@@ -38,20 +38,20 @@ def test_patch_extract_old(sample_data):
 
 
 def test_patch_extract_reconstruct_old(sample_data):
-    x, (M, N, F) = sample_data
+    x, (F, M, N) = sample_data
     patch_size = 4
 
     # Extract patches
     X_tilde = extract_patches(x, patch_size)
 
     # Reconstruct
-    X_rec = reconstruct_from_patches(X_tilde, patch_size, (M, N, F))
+    X_rec = reconstruct_from_patches(X_tilde, patch_size, (F, M, N))
 
     np.testing.assert_array_equal(x, X_rec)
 
 
 def test_patch_extract(sample_data):
-    x, (M, N, F) = sample_data
+    x, (F, M, N) = sample_data
 
     # Extract patches
     patch_size = 4
@@ -71,20 +71,20 @@ def test_patch_extract(sample_data):
 
 
 def test_patch_extract_reconstruct(sample_data):
-    x, (M, N, F) = sample_data
+    x, (F, M, N) = sample_data
     patch_size = 4
 
     # Extract patches
     X_tilde, locations = extract_sparse_patches(x, patch_size)
 
     # Reconstruct
-    X_rec = reconstruct_sparse_patches(X_tilde, locations, (M, N, F))
+    X_rec = reconstruct_sparse_patches(X_tilde, locations, (F, M, N))
 
     np.testing.assert_array_equal(x, X_rec)
 
 
 def test_patch_extract_sparse(sample_data):
-    x, (M, N, F) = sample_data
+    x, (F, M, N) = sample_data
 
     x = soft_thresh(x, 240)
 
@@ -100,7 +100,7 @@ def test_patch_extract_sparse(sample_data):
 
 
 def test_patch_extract_reconstruct_sparse(sample_data):
-    x, (M, N, F) = sample_data
+    x, (F, M, N) = sample_data
     patch_size = 4
     x = soft_thresh(x, 220)
 
@@ -108,6 +108,6 @@ def test_patch_extract_reconstruct_sparse(sample_data):
     X_tilde, locations = extract_sparse_patches(x, patch_size)
 
     # Reconstruct
-    X_rec = reconstruct_sparse_patches(X_tilde, locations, (M, N, F))
+    X_rec = reconstruct_sparse_patches(X_tilde, locations, (F, M, N))
 
     np.testing.assert_array_equal(x, X_rec)

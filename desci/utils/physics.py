@@ -47,9 +47,9 @@ def phi(x: NDArray, mask: NDArray):
     Applies forward transform
     x,mask
     """
-    H, W, T = mask.shape
+    T, H, W = mask.shape
     # x = x.reshape(H, W, -1)
-    y = np.multiply(mask, x).sum(axis=2).reshape(-1)
+    y = np.multiply(mask, x).sum(axis=0)
     return y
 
 
@@ -58,10 +58,10 @@ def phit(y, mask):
     Applies the adjoint of the transform
     y,mask
     """
-    H, W, T = mask.shape
+    T, H, W = mask.shape
     y = y.reshape(H, W)
-    x = np.multiply(mask, y[:, :, np.newaxis])
-    return x.reshape(-1)
+    x = np.multiply(mask, y[np.newaxis, :, :])
+    return x
 
 
 def generate_phi(

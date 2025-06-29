@@ -16,26 +16,22 @@ from skimage.metrics import peak_signal_noise_ratio
 # @njit
 def soft_thresh(x, lambda_):
     x = x.astype(np.float64)
-    # JM: I just noticed that Algorithm 3 in the pdf has typos. This is
-    # correct. Thank you
     out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
-    # out = denoise_tv_chambolle(x, 1/lambda_)
     return out
 
 
 def bar(x: NDArray) -> NDArray:
     # assert len(x.shape) == 3
-    M, N, F = x.shape
-    x_bar = x.reshape(M * N, F)
+    F, M, N = x.shape
+    x_bar = x.reshape(F, M * N)
     return x_bar
 
 
 def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
-    M, N, F = mask.shape
-    mask = mask.transpose(2, 0, 1)
+    F, M, N = mask.shape
 
-    C1 = (rho/lambda_0)*(B+V-Lambda/rho).transpose(2, 0, 1)
+    C1 = (rho/lambda_0)*(B+V-Lambda/rho)
     C2 = np.multiply(mask, Y[np.newaxis, :, :])
     C3 = C1+C2
     C4 = np.multiply(mask, C3).sum(axis=0)
@@ -47,15 +43,16 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
     C6 = np.multiply(mask, C5[np.newaxis, :, :])
 
     X = (C3-C6*lambda_0/rho)*lambda_0/rho
-    return X.transpose(1, 2, 0)
+    return X
 
 
 def update_L(
-    B, Delta, rho, lambda_2, mask, delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=3
+    B, Delta, rho, lambda_2, mask,
+    delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=6
 ):
-    M, N, F = mask.shape
+    F, M, N = mask.shape
     La = B + Delta / rho
-    La_bar = La.reshape(M * N, F)
+    La_bar = La.reshape(F, M * N)
     u, s, vh = randomized_svd(La_bar, svd_l)
     # s is array of components
     dold = s.copy()
@@ -71,16 +68,13 @@ def update_L(
 
     L_bar = u @ np.diag(d) @ vh
 
-    L = L_bar.reshape(M, N, F)
+    L = L_bar.reshape(F, M, N)
     return L
 
 
 def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
-    # JM: Ok, I should update the document with this operation
     return S
-    # S = (U + V - (Theta + Gamma) / rho) / 2
-    # return S
 
 
 # @njit
@@ -131,7 +125,7 @@ def update_V_B(
 
 def ADMM(
         y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3, mu=10, tau=2):
-    M, N, F = mask.shape
+    F, M, N = mask.shape
 
     # Init
     Y = y.reshape((M, N)).astype(np.float64)
@@ -251,11 +245,11 @@ def ADMM(
 
 if __name__ == "__main__":
     x = load_video(
-        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[:, :, 30:33]
-    mask = generate_mask(x.shape, 0.6)
+        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[30:38, :, :]
+    mask = generate_mask(x.shape, 0.2)
     y = phi(x, mask)
 
-    M, N, F = mask.shape
+    F, M, N = mask.shape
 
     lambda_0 = 1
     lambda_1 = 0.5
@@ -271,7 +265,7 @@ if __name__ == "__main__":
         lambda_1=lambda_1,
         lambda_2=lambda_2,
         lambda_3=lambda_3,
-        MAX_IT=2000,
+        MAX_IT=500,
     )
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
     print(f"PSNR:", psnr)

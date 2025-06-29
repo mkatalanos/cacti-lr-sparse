@@ -10,9 +10,9 @@ def load_video(fpath: str):
         + 0.1140 * video[:, :, :, 2]
     )
 
-    grayscale_video = np.transpose(grayscale_video, (1, 2, 0)).round()
+    # grayscale_video = np.transpose(grayscale_video, (1, 2, 0))
 
-    return grayscale_video
+    return grayscale_video.round()
 
 
 if __name__ == "__main__":
