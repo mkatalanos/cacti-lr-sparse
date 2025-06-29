@@ -1,7 +1,10 @@
 import pytorch_lightning as pl
+import torch
 
 from datamodule import VideoDataModule
 from model_wrapper import Model
+
+torch.set_float32_matmul_precision("medium")
 
 if __name__ == '__main__':
     data_dir = '/home/marios/Documents/diss-code/repo/e2e/dataset'
@@ -28,6 +31,6 @@ if __name__ == '__main__':
     trainer = pl.Trainer(logger=logger, callbacks=[
                          early_stop_callback], min_epochs=10)
 
-    trainer.fit(model=model, datamodule=vdm)
+    trainer.fit(model=model, train_dataloaders=vdm, val_dataloaders=vdm)
 
     trainer.test(model, datamodule=vdm)
