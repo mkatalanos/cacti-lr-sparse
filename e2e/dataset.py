@@ -70,7 +70,7 @@ class VideoDataset(Dataset):
         return video[i:j]
 
     def __len__(self):
-        return len(self.collected_slices)
+        return len(self.slices)
 
     def __getitem__(self, idx):
         x = self.load_slice_pair(idx)
