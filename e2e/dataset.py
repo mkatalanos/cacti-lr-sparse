@@ -1,9 +1,11 @@
 import imageio.v3 as iio
+import imageio_ffmpeg as iff
 from typing import List
 import numpy as np
 from numpy.typing import NDArray
 import torch
 from torch.utils.data import Dataset
+from itertools import chain
 
 from utils.physics import generate_mask, phi, phit
 
@@ -19,6 +21,25 @@ def load_frames(fpath: str) -> NDArray:
     return torch.from_numpy(grayscale_video)
 
 
+def load_nframes(fpath: str) -> int:
+    nframes, secs = iff.count_frames_and_secs(fpath)
+    return nframes
+
+
+def dry_slice(nframes: int, B=20):
+    stride = B
+    slices = []
+    for i in range(0, nframes-B+1, stride):
+        slices.append((i, i+B))
+    return slices
+
+
+def dry_slice_video(fpath: str, B=20):
+    nframes = load_nframes(fpath)
+    slices = dry_slice(nframes, B)
+    return [(fpath, subvid) for subvid in slices]
+
+
 def slice_video(video: NDArray, B=20):
     F, M, N = video.shape
     stride = B
@@ -32,11 +53,8 @@ class VideoDataset(Dataset):
     def __init__(self, sources: List[str], B=20, block_rate=0.2):
         super().__init__()
         self.block_rate = block_rate
-        videos = [load_frames(fpath) for fpath in sources]
-        self.collected_slices = []
-
-        for video in videos:
-            self.collected_slices += slice_video(video, B)
+        self.slices = list(chain.from_iterable(
+            [dry_slice_video(fpath, B) for fpath in sources]))
 
     @staticmethod
     def normalize(x):
@@ -46,11 +64,16 @@ class VideoDataset(Dataset):
     def denormalize(x):
         return (x + 1) * 127.5
 
+    def load_slice_pair(self, idx):
+        fpath, (i, j) = self.slices[idx]
+        video = load_frames(fpath)
+        return video[i:j]
+
     def __len__(self):
         return len(self.collected_slices)
 
     def __getitem__(self, idx):
-        x = self.collected_slices[idx]
+        x = self.load_slice_pair(idx)
 
         F, M, N = x.shape
 
@@ -89,3 +112,4 @@ if __name__ == "__main__":
     idx = 2
     sources = glob.glob("./dataset/*.mp4")
     dataset = VideoDataset(sources)
+    # vid = sources[0]
