@@ -1,6 +1,6 @@
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import random_split
+from torch.utils.data import random_split, DataLoader
 from typing import List
 from dataset import VideoDataset
 import glob
@@ -20,23 +20,26 @@ class VideoDataModule(pl.LightningDataModule):
         self.train_sources, self.val_sources, self.test_sources = random_split(
             self.sources, [0.6, 0.2, 0.2], torch.Generator().manual_seed(2025))
 
-        self.train = VideoDataset(
-            list(self.train_sources), self.B, self.block_rate)
+        if stage == "fit":
+            self.train_dataset = VideoDataset(
+                self.train_sources, self.B, self.block_rate)
+            self.val_dataset = VideoDataset(
+                self.val_sources, self.B, self.block_rate)
+        elif stage == "validate":
+            self.val_dataset = VideoDataset(
+                self.val_sources, self.B, self.block_rate)
+        elif stage == "test":
+            self.test_dataset = VideoDataset(
+                self.test_sources, self.B, self.block_rate)
 
-        self.val = VideoDataset(
-            list(self.val_sources), self.B, self.block_rate)
+    def train_dataloader(self):
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
 
-        self.test = VideoDataset(
-            list(self.test_sources), self.B, self.block_rate)
+    def val_dataloader(self):
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
-        def train_dataloader(self):
-            return torch.utils.data.DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
-
-        def val_dataloader(self):
-            return torch.utils.data.DataLoader(self.val, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
-
-        def test_dataloader(self):
-            return torch.utils.data.DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+    def test_dataloader(self):
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
 if __name__ == "__main__":

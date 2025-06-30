@@ -9,7 +9,7 @@ torch.set_float32_matmul_precision("medium")
 if __name__ == '__main__':
     data_dir = '/home/marios/Documents/diss-code/repo/e2e/dataset'
 
-    batch_size = 16
+    batch_size = 4
     num_workers = 31
     channels = 64
     model_depth = 6
@@ -31,6 +31,6 @@ if __name__ == '__main__':
     trainer = pl.Trainer(logger=logger, callbacks=[
                          early_stop_callback], min_epochs=10)
 
-    trainer.fit(model=model, train_dataloaders=vdm, val_dataloaders=vdm)
+    trainer.fit(model, vdm)
 
-    trainer.test(model, datamodule=vdm)
+    trainer.test(model, vdm)

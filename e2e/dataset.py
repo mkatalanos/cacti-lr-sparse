@@ -16,12 +16,12 @@ def load_frames(fpath: str) -> NDArray:
         + 0.1140 * video[:, :, :, 2]
     ).round()
 
-    return grayscale_video
+    return torch.from_numpy(grayscale_video)
 
 
 def slice_video(video: NDArray, B=20):
     F, M, N = video.shape
-    stride = B//4
+    stride = B
     subvids = []
     for i in range(0, F-B+1, stride):
         subvids.append(video[i:i+B])
@@ -50,28 +50,30 @@ class VideoDataset(Dataset):
         return len(self.collected_slices)
 
     def __getitem__(self, idx):
-        x = self.collected_slices[idx].transpose(1, 2, 0)
+        x = self.collected_slices[idx]
 
-        M, N, F = x.shape
+        F, M, N = x.shape
 
         # Generate random mask with idx as seed
         mask = generate_mask(x.shape, self.block_rate, idx)
+        mask = torch.from_numpy(mask)
 
-        y = phi(x, mask).reshape(M, N)
+        y = torch.multiply(mask, x).sum(axis=0)
 
-        mff = np.multiply(mask, mask, dtype=np.float64).sum(axis=2)
+        mff = torch.multiply(mask, mask).sum(axis=0)
+        # mff = np.multiply(mask, mask, dtype=np.float64).sum(axis=2)
         mff[mff == 0] = 1e-8
 
-        phiphit_inv = np.divide(y, mff)
+        phiphit_inv = torch.divide(y, mff)
 
-        inverted = np.multiply(mask, phiphit_inv[:, :, np.newaxis])
+        inverted = torch.multiply(mask, phiphit_inv[torch.newaxis, :, :])
 
-        x = x.transpose(2, 0, 1)
-        inverted = inverted.transpose(2, 0, 1)
+        # x = x.transpose(2, 0, 1)
+        # inverted = inverted.transpose(2, 0, 1)
 
         # Normalizing
-        x = VideoDataset.normalize(x)
-        inverted = VideoDataset.normalize(inverted)
+        x = VideoDataset.normalize(x).to(torch.float)
+        inverted = VideoDataset.normalize(inverted).to(torch.float)
 
         sample = {"truth": x, "inverted": inverted}
         return sample
@@ -79,9 +81,11 @@ class VideoDataset(Dataset):
 
 if __name__ == "__main__":
     from utils.visualize import *
+    import glob
 
     video = load_frames(
         "./dataset/casia_angleview_p01_run_a1.mp4")
     collected_slices = slice_video(video)
     idx = 2
-    x = collected_slices[idx].transpose(1, 2, 0)
+    sources = glob.glob("./dataset/*.mp4")
+    dataset = VideoDataset(sources)
