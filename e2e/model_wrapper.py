@@ -63,6 +63,10 @@ class Model(pl.LightningModule):
         xs = (xs + 1) * 127.5
         pred = (pred + 1) * 127.5
 
+        # Move to cpu and round to closest int
+        xs = xs.cpu().numpy().round()
+        pred = pred.cpu().numpy().round()
+
         psnr = peak_signal_noise_ratio(pred, xs, data_range=255)
 
         self.log("test_loss", loss)

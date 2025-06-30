@@ -10,7 +10,7 @@ if __name__ == '__main__':
     data_dir = '/home/marios/Documents/diss-code/repo/e2e/dataset'
 
     batch_size = 16
-    num_workers = 4
+    num_workers = 8
     channels = 64
     model_depth = 6
     B = 20

@@ -19,17 +19,17 @@ class VideoDataModule(pl.LightningDataModule):
         self.train_sources, self.val_sources, self.test_sources = random_split(
             self.sources, [0.6, 0.2, 0.2], torch.Generator().manual_seed(2025))
 
-        # if stage == "fit":
-        self.train_dataset = VideoDataset(
-            list(self.train_sources), self.B, self.block_rate)
-        self.val_dataset = VideoDataset(
-            list(self.val_sources), self.B, self.block_rate)
-        # elif stage == "validate":
-        #     self.val_dataset = VideoDataset(
-        #         self.val_sources, self.B, self.block_rate)
-        # elif stage == "test":
-        self.test_dataset = VideoDataset(
-            list(self.test_sources), self.B, self.block_rate)
+        if stage == "fit":
+            self.train_dataset = VideoDataset(
+                self.train_sources, self.B, self.block_rate)
+            self.val_dataset = VideoDataset(
+                self.val_sources, self.B, self.block_rate)
+        elif stage == "validate":
+            self.val_dataset = VideoDataset(
+                self.val_sources, self.B, self.block_rate)
+        elif stage == "test":
+            self.test_dataset = VideoDataset(
+                self.test_sources, self.B, self.block_rate)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
