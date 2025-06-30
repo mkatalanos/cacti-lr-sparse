@@ -9,8 +9,8 @@ torch.set_float32_matmul_precision("medium")
 if __name__ == '__main__':
     data_dir = '/home/marios/Documents/diss-code/repo/e2e/dataset'
 
-    batch_size = 4
-    num_workers = 31
+    batch_size = 16
+    num_workers = 4
     channels = 64
     model_depth = 6
     B = 20
@@ -28,8 +28,9 @@ if __name__ == '__main__':
     early_stop_callback = pl.callbacks.EarlyStopping(
         monitor="val_loss", mode="min", patience=5)
 
-    trainer = pl.Trainer(logger=logger, callbacks=[
-                         early_stop_callback], min_epochs=10)
+    trainer = pl.Trainer(logger=logger, callbacks=[early_stop_callback],
+                         min_epochs=10, max_epochs=100,
+                         precision=16)
 
     trainer.fit(model, vdm)
 

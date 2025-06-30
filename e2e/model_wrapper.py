@@ -13,7 +13,7 @@ class Model(pl.LightningModule):
         self.layer = E2E_CNN(B, channels, depth)
 
         self.lr = 1e-2
-        self.loss = CustomLoss(alpha=1, beta=0.1)
+        self.loss = CustomLoss(alpha=1, beta=0.1, B=B)
 
     def forward(self, x):
         return self.layer(x)
@@ -41,6 +41,10 @@ class Model(pl.LightningModule):
         # Scale both to 0-255
         xs = (xs + 1) * 127.5
         pred = (pred + 1) * 127.5
+
+        # Move to cpu and round to closest int
+        xs = xs.cpu().numpy().round()
+        pred = pred.cpu().numpy().round()
 
         psnr = peak_signal_noise_ratio(pred, xs, data_range=255)
 

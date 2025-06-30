@@ -67,7 +67,9 @@ class VideoDataset(Dataset):
     def load_slice_pair(self, idx):
         fpath, (i, j) = self.slices[idx]
         video = load_frames(fpath)
-        return video[i:j]
+        x = video[i:j]
+        del video
+        return x
 
     def __len__(self):
         return len(self.slices)
