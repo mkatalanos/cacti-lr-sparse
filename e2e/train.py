@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     trainer = pl.Trainer(logger=logger, callbacks=[early_stop_callback],
                          min_epochs=10, max_epochs=100,
-                         precision=16)
+                         precision="16-mixed")
 
     trainer.fit(model, vdm)
 
