@@ -27,7 +27,7 @@ def load_nframes(fpath: str) -> int:
 
 
 def dry_slice(nframes: int, B=20):
-    stride = B
+    stride = B//2
     slices = []
     for i in range(0, nframes-B+1, stride):
         slices.append((i, i+B))

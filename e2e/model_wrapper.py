@@ -1,11 +1,8 @@
 import pytorch_lightning as pl
-from skimage.metrics import peak_signal_noise_ratio
 import torch
-
-from model import E2E_CNN
 from loss import CustomLoss
-
-import pickle
+from model import E2E_CNN
+from skimage.metrics import peak_signal_noise_ratio
 
 
 class CustomModel(pl.LightningModule):
@@ -50,8 +47,8 @@ class CustomModel(pl.LightningModule):
 
         psnr = peak_signal_noise_ratio(pred, xs, data_range=255)
 
-        self.log("val_loss", loss)
-        self.log("val_psnr", psnr)
+        self.log("val_loss", loss, sync_dist=True)
+        self.log("val_psnr", psnr, sync_dist=True)
 
     def test_step(self, batch, batch_idx):
         xs = batch['truth']
@@ -71,8 +68,8 @@ class CustomModel(pl.LightningModule):
 
         psnr = peak_signal_noise_ratio(pred, xs, data_range=255)
 
-        self.log("test_loss", loss)
-        self.log("test_psnr", psnr)
+        self.log("test_loss", loss, sync_dist=True)
+        self.log("test_psnr", psnr, sync_dist=True)
 
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)

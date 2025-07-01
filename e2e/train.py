@@ -7,10 +7,10 @@ from model_wrapper import CustomModel
 torch.set_float32_matmul_precision("medium")
 
 if __name__ == '__main__':
-    data_dir = '/home/marios/Documents/diss-code/repo/e2e/dataset'
+    data_dir = '/work/m24oc/m24oc/s1852485/Diss/train/e2e/dataset'
 
     batch_size = 16
-    num_workers = 8
+    num_workers = 10
     channels = 64
     model_depth = 6
     B = 20
@@ -30,6 +30,7 @@ if __name__ == '__main__':
 
     trainer = pl.Trainer(logger=logger, callbacks=[early_stop_callback],
                          min_epochs=10, max_epochs=100,
+                         accelerator="gpu", devices=2, num_nodes=1,strategy="ddp"
                          )
 
     trainer.fit(model, vdm)

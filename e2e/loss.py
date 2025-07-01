@@ -1,7 +1,7 @@
-from pytorch_msssim import MS_SSIM
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from pytorch_msssim import MS_SSIM
 
 
 class CustomLoss(nn.Module):
@@ -27,11 +27,12 @@ class CustomLoss(nn.Module):
 
 
 if __name__ == "__main__":
-    from utils.visualize import visualize_cube
-    from model_wrapper import CustomModel
-    from dataset import VideoDataset
-    import torch.utils.data as data
     import glob
+
+    import torch.utils.data as data
+    from dataset import VideoDataset
+    from model_wrapper import CustomModel
+    from utils.visualize import visualize_cube
 
     def viz(tensor: torch.Tensor):
         visualize_cube(tensor.detach().cpu().numpy().transpose(1, 2, 0))
