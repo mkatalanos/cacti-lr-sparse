@@ -11,14 +11,14 @@ class CustomLoss(nn.Module):
         self.beta = beta
 
         self.ms_ssim_module = MS_SSIM(
-            data_range=1, size_average=False, channel=B)
+            data_range=255, size_average=False, channel=B)
 
     def forward(self, x, y):
         mse = F.mse_loss(x, y)
 
-        # Normalize from [-1,1] to [0,1]
-        x = (x+1)/2
-        y = (y+1)/2
+        # Normalize from [-1,1] to [0,255]
+        x = (x+1)*127.5
+        y = (y+1)*127.5
 
         ms_ssim_loss = 1 - self.ms_ssim_module(x, y).mean()
 
@@ -28,30 +28,43 @@ class CustomLoss(nn.Module):
 
 if __name__ == "__main__":
     from utils.visualize import visualize_cube
+    from model_wrapper import CustomModel
+    from dataset import VideoDataset
+    import torch.utils.data as data
+    import glob
 
     def viz(tensor: torch.Tensor):
-        visualize_cube(tensor.numpy().transpose(1, 2, 0))
+        visualize_cube(tensor.detach().cpu().numpy().transpose(1, 2, 0))
 
-    B, F_, M, N = 13, 8, 256, 256
-    x = torch.randint(0, 100, (B, F_, M, N)).to(torch.float)
+    data_dir = '/home/marios/Documents/diss-code/repo/e2e/dataset'
+    sources = glob.glob(f"{data_dir}/*.mp4")
+    sources = sources[:len(sources)*80//100]
 
-    # Generate Mask
-    mask = torch.randint(0, 100, (B, F_, M, N)).to(torch.float)
-    mask[mask <= 20] = 0
-    mask[mask != 0] = 1
+    B = 20
+    dataset = VideoDataset(sources, B, block_rate=0.2)
+    dataloader = data.DataLoader(dataset, batch_size=4)
 
-    y = torch.multiply(mask, x).sum(axis=1)
+    model = CustomModel(B=B).to("cuda")
+    opt = torch.optim.Adam(model.parameters(), lr=model.lr)
 
-    # Invert
-    mff = torch.multiply(mask, mask).sum(axis=1)
-    mff[mff == 0] = 1e-8
-    phiphit_inv = torch.divide(y, mff)
+    loss_fun = CustomLoss(B=B)
 
-    inverted = torch.multiply(mask, phiphit_inv[:, torch.newaxis, :, :])
+    for batch in dataloader:
+        x = batch['truth'].to("cuda")
+        y = batch['inverted'].to("cuda")
 
-    xcuda = x.to("cuda")
-    inv = inverted.to("cuda")
+        pred = model(y)
 
-    loss = CustomLoss(B=F_)
+        loss = loss_fun(x, pred)
 
-    l = loss(xcuda, inv)
+        loss.backward()
+        opt.step()
+        opt.zero_grad()
+
+        if y.isnan().any() or pred.isnan().any() or loss.isnan().any():
+            print("Breaking")
+            break
+    #
+    # loss = CustomLoss()
+    #
+    # l = loss(x, pred)

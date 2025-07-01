@@ -5,14 +5,16 @@ import torch
 from model import E2E_CNN
 from loss import CustomLoss
 
+import pickle
 
-class Model(pl.LightningModule):
+
+class CustomModel(pl.LightningModule):
     def __init__(self, B=20, channels=64, depth=5):
         super().__init__()
 
         self.layer = E2E_CNN(B, channels, depth)
 
-        self.lr = 1e-2
+        self.lr = 1e-3
         self.loss = CustomLoss(alpha=1, beta=0.1, B=B)
 
     def forward(self, x):

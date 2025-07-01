@@ -70,10 +70,63 @@ class E2E_CNN(nn.Module):
         return out+identity
 
 
+# if __name__ == "__main__":
+#     model = E2E_CNN(B=3, channels=64, depth=5)
+#     M, N, B = (256, 256, 3)
+#     x = torch.randn((M, N, B))
+#     x = x.permute(2, 0, 1)
+#     out = model(x)
+#     raise SystemExit
+
 if __name__ == "__main__":
-    model = E2E_CNN(B=3, channels=64, depth=5)
-    M, N, B = (256, 256, 3)
-    x = torch.randn((M, N, B))
-    x = x.permute(2, 0, 1)
-    out = model(x)
-    raise SystemExit
+    from utils.visualize import visualize_cube
+    from model_wrapper import CustomModel
+    from dataset import VideoDataset
+    import torch.utils.data as data
+    import glob
+
+    def viz(tensor: torch.Tensor):
+        visualize_cube(tensor.transpose(1, 2, 0))
+
+    data_dir = '/home/marios/Documents/diss-code/repo/e2e/dataset'
+    sources = glob.glob(f"{data_dir}/*.mp4")[:3]
+
+    B = 8
+    dataset = VideoDataset(sources, B)
+    dataloader = data.DataLoader(dataset, batch_size=4)
+
+    for batch in dataloader:
+        break
+
+    truth = batch['truth']
+    x = batch['inverted']
+
+    channels = 64
+    depth = 5
+
+    in_block = nn.Sequential(
+        nn.Conv2d(B, channels,
+                  kernel_size=3, stride=1, padding=1),
+        nn.ReLU()
+    )
+
+    encoder = nn.ModuleList([
+        ResBlock(channels) for i in range(depth)
+    ])
+
+    decoder = nn.ModuleList([
+        ResBlock(channels) for i in range(depth)
+    ])
+
+    bridge = nn.Sequential(
+        nn.Conv2d(channels, channels, kernel_size=3,
+                  stride=1, padding=1),
+        nn.ReLU(),
+        nn.Conv2d(channels, channels, kernel_size=3,
+                  stride=1, padding=1),
+        nn.ReLU(),
+    )
+    out_block = nn.Sequential(
+        nn.Conv2d(channels, B, kernel_size=1),
+        nn.Tanh()
+    )

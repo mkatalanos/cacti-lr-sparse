@@ -18,7 +18,7 @@ def load_frames(fpath: str) -> NDArray:
         + 0.1140 * video[:, :, :, 2]
     ).round()
 
-    return torch.from_numpy(grayscale_video)
+    return torch.from_numpy(grayscale_video).to(torch.float)
 
 
 def load_nframes(fpath: str) -> int:
@@ -81,12 +81,11 @@ class VideoDataset(Dataset):
 
         # Generate random mask with idx as seed
         mask = generate_mask(x.shape, self.block_rate, idx)
-        mask = torch.from_numpy(mask)
+        mask = torch.from_numpy(mask).to(torch.float)
 
         y = torch.multiply(mask, x).sum(axis=0)
 
-        mff = torch.multiply(mask, mask).sum(axis=0)
-        # mff = np.multiply(mask, mask, dtype=np.float64).sum(axis=2)
+        mff = torch.multiply(mask, mask).sum(axis=0).to(torch.float)
         mff[mff == 0] = 1e-8
 
         phiphit_inv = torch.divide(y, mff)

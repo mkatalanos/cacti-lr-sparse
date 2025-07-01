@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import torch
 
 from datamodule import VideoDataModule
-from model_wrapper import Model
+from model_wrapper import CustomModel
 
 torch.set_float32_matmul_precision("medium")
 
@@ -18,7 +18,7 @@ if __name__ == '__main__':
     vdm = VideoDataModule(data_dir, batch_size=batch_size,
                           num_workers=num_workers, B=B)
 
-    model = Model(B=B, channels=channels, depth=model_depth)
+    model = CustomModel(B=B, channels=channels, depth=model_depth)
 
     logger = pl.loggers.TensorBoardLogger(
         save_dir="lightning_logs", log_graph=False,
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     trainer = pl.Trainer(logger=logger, callbacks=[early_stop_callback],
                          min_epochs=10, max_epochs=100,
-                         precision="16-mixed")
+                         )
 
     trainer.fit(model, vdm)
 
