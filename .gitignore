@@ -12,6 +12,7 @@
 *.bcf
 *.ps
 *.csv
+*.pt
 
 #Python stuff
 __pycache__/
