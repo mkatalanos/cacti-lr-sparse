@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import random_split, DataLoader
 from dataset import VideoDataset
+import albumentations as A
 import glob
 
 
@@ -14,6 +15,11 @@ class VideoDataModule(pl.LightningDataModule):
         self.block_rate = block_rate
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.transform = A.Compose(
+            [
+                A.Rotate(p=0.5),
+                A.RandomCrop(height=200, width=200, p=1)
+            ], additional_targets={"inverted": "image"})
 
     def setup(self, stage):
         self.train_sources, self.val_sources, self.test_sources = random_split(
@@ -21,7 +27,7 @@ class VideoDataModule(pl.LightningDataModule):
 
         if stage == "fit":
             self.train_dataset = VideoDataset(
-                self.train_sources, self.B, self.block_rate)
+                self.train_sources, self.B, self.block_rate, self.transform)
             self.val_dataset = VideoDataset(
                 self.val_sources, self.B, self.block_rate)
         elif stage == "validate":

@@ -50,11 +50,12 @@ def slice_video(video: NDArray, B=20):
 
 
 class VideoDataset(Dataset):
-    def __init__(self, sources: List[str], B=20, block_rate=0.2):
+    def __init__(self, sources: List[str], B=20, block_rate=0.2, transform=None):
         super().__init__()
         self.block_rate = block_rate
         self.slices = list(chain.from_iterable(
             [dry_slice_video(fpath, B) for fpath in sources]))
+        self.transform = transform
 
     @staticmethod
     def normalize(x):
@@ -92,8 +93,14 @@ class VideoDataset(Dataset):
 
         inverted = torch.multiply(mask, phiphit_inv[torch.newaxis, :, :])
 
-        # x = x.transpose(2, 0, 1)
-        # inverted = inverted.transpose(2, 0, 1)
+        # Pass transform if existing
+        if self.transform:
+            # Albumentations expects (H,W,C) instead of (C,H,W)
+            inverted_np = inverted.permute(1, 2, 0).numpy()
+            x_np = x.permute(1, 2, 0).numpy()
+            transformed = self.transform(image=x_np, inverted=inverted_np)
+            inverted = torch.tensor(transformed["inverted"]).permute(2, 0, 1)
+            x = torch.tensor(transformed["image"]).permute(2, 0, 1)
 
         # Normalizing
         x = VideoDataset.normalize(x).to(torch.float)
@@ -106,11 +113,16 @@ class VideoDataset(Dataset):
 if __name__ == "__main__":
     from utils.visualize import *
     import glob
+    import albumentations as A
 
     video = load_frames(
         "./dataset/casia_angleview_p01_run_a1.mp4")
     collected_slices = slice_video(video)
     idx = 2
     sources = glob.glob("./dataset/*.mp4")
-    dataset = VideoDataset(sources)
+    dataset = VideoDataset(sources, transform=A.Compose(
+        [
+            A.Rotate(p=0.5),
+            A.RandomCrop(height=200, width=200, p=1)
+        ], additional_targets={"inverted": "image"}))
     # vid = sources[0]
