@@ -18,7 +18,7 @@ class VideoDataModule(pl.LightningDataModule):
         self.transform = A.Compose(
             [
                 A.Rotate(p=0.5),
-                A.RandomCrop(height=200, width=200, p=1)
+                A.RandomCrop(height=180, width=180, p=1)
             ], additional_targets={"inverted": "image"})
 
     def setup(self, stage):
