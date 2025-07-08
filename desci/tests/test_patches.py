@@ -2,9 +2,7 @@ import numpy as np
 import pytest
 from lr_sparse_admm import soft_thresh
 from utils.patches import (
-    extract_patches,
     extract_sparse_patches,
-    reconstruct_from_patches,
     reconstruct_sparse_patches,
 )
 
@@ -17,37 +15,36 @@ def sample_data():
     return x, (F, M, N)
 
 
-def test_patch_extract_old(sample_data):
-    x, (F, M, N) = sample_data
+# def test_patch_extract_old(sample_data):
+#     x, (F, M, N) = sample_data
+#
+#     # Extract patches
+#     patch_size = 4
+#     X_tilde = extract_patches(x, patch_size)
+#     assert X_tilde.shape == (
+#         patch_size * patch_size,
+#         M * N * F / (patch_size * patch_size),
+#     )
+#
+#     # Extract patches
+#     patch_size = 2
+#     X_tilde = extract_patches(x, patch_size)
+#     assert X_tilde.shape == (
+#         patch_size * patch_size,
+#         M * N * F / (patch_size * patch_size),
+#     )
 
-    # Extract patches
-    patch_size = 4
-    X_tilde = extract_patches(x, patch_size)
-    assert X_tilde.shape == (
-        patch_size * patch_size,
-        M * N * F / (patch_size * patch_size),
-    )
-
-    # Extract patches
-    patch_size = 2
-    X_tilde = extract_patches(x, patch_size)
-    assert X_tilde.shape == (
-        patch_size * patch_size,
-        M * N * F / (patch_size * patch_size),
-    )
-
-
-def test_patch_extract_reconstruct_old(sample_data):
-    x, (F, M, N) = sample_data
-    patch_size = 4
-
-    # Extract patches
-    X_tilde = extract_patches(x, patch_size)
-
-    # Reconstruct
-    X_rec = reconstruct_from_patches(X_tilde, patch_size, (F, M, N))
-
-    np.testing.assert_array_equal(x, X_rec)
+# def test_patch_extract_reconstruct_old(sample_data):
+#     x, (F, M, N) = sample_data
+#     patch_size = 4
+#
+#     # Extract patches
+#     X_tilde = extract_patches(x, patch_size)
+#
+#     # Reconstruct
+#     X_rec = reconstruct_from_patches(X_tilde, patch_size, (F, M, N))
+#
+#     np.testing.assert_array_equal(x, X_rec)
 
 
 def test_patch_extract(sample_data):
@@ -91,11 +88,14 @@ def test_patch_extract_sparse(sample_data):
     # Extract patches
     patch_size = 4
     X_tilde, locations = extract_sparse_patches(x, patch_size)
+    print(f"{patch_size=}, {X_tilde.shape=}, {
+          M * N * F / (patch_size * patch_size)=}")
     assert X_tilde.shape[1] < M * N * F / (patch_size * patch_size)
 
     # Extract patches
     patch_size = 2
     X_tilde, locations = extract_sparse_patches(x, patch_size)
+    print(f"{patch_size=}, {X_tilde.shape=}")
     assert X_tilde.shape[1] < M * N * F / (patch_size * patch_size)
 
 

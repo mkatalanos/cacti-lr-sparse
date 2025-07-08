@@ -2,13 +2,11 @@ from typing import Any, Callable, Tuple
 
 import numpy as np
 
-# from numba import njit
-import cvxpy as cp
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
 from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
-from utils.dataloader import load_video
-from utils.physics import phi, init, generate_mask
+from utils.dataloader import load_video, load_mat
+from utils.physics import phi, init, generate_mask, pseudoinverse
 from utils.visualize import visualize_cube
 from skimage.metrics import peak_signal_noise_ratio
 
@@ -46,14 +44,73 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
     return X
 
 
+def t_svt(Y, tau):
+    """
+    Tensor Singular Value Thresholding (t-SVT) over the first dimension (axis=0)
+
+    Parameters:
+        Y   : numpy.ndarray, shape (n1, n2, n3)
+        tau : float, threshold parameter
+
+    Returns:
+        D_tau_Y : numpy.ndarray, shape (n1, n2, n3)
+    """
+    n1, n2, n3 = Y.shape
+    # Step 1: FFT along the 1st dimension (axis=0)
+    Y_fft = np.fft.fft(Y, axis=0)
+    W_fft = np.zeros_like(Y_fft, dtype=complex)
+    halfn1 = int(np.ceil((n1 + 1) / 2))
+
+    # Step 2: Matrix SVT on each lateral slice (fix i, vary j,k)
+    for i in range(halfn1):
+        U, S, Vh = np.linalg.svd(Y_fft[i, :, :], full_matrices=False)
+        S_thresh = np.maximum(S - tau, 0)
+        W_fft[i, :, :] = (U * S_thresh) @ Vh
+
+    # Fill the remaining slices using conjugate symmetry
+    for i in range(halfn1, n1):
+        W_fft[i, :, :] = np.conj(W_fft[n1 - i, :, :])
+
+    # Step 3: Inverse FFT along the 1st dimension (axis=0)
+    # Take real part if input is real
+    D_tau_Y = np.fft.ifft(W_fft, axis=0).real
+
+    return D_tau_Y
+
+
 def update_L(
     B, Delta, rho, lambda_2, mask,
-    delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=6
+    delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=60
 ):
+    """
+    Uses T-SVD for background
+    """
+
+    F, M, N = mask.shape
+    La = B + Delta / rho
+
+    L = t_svt(La, lambda_2/rho)
+
+    return L
+
+
+def update_L_old(
+    B, Delta, rho, lambda_2, mask,
+    delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=60
+):
+    """
+    L <- B
+    """
     F, M, N = mask.shape
     La = B + Delta / rho
     La_bar = La.reshape(F, M * N)
-    u, s, vh = randomized_svd(La_bar, svd_l)
+    u, s, vh = np.linalg.svd(La_bar, full_matrices=False)
+    # u, s, vh = randomized_svd(La_bar, svd_l)
+    # La_tilde, patch_locations = extract_sparse_patches(La, 32)
+    # u, s, vh = np.linalg.svd(La_tilde, full_matrices=False)
+
+    """ Trying without weighting
+
     # s is array of components
     dold = s.copy()
 
@@ -66,9 +123,13 @@ def update_L(
         if np.abs(d - dold).max() <= delta:
             break
 
+    """
+    d = soft_thresh(s, lambda_2/rho)
     L_bar = u @ np.diag(d) @ vh
-
+    # L_bar = u[:, :1] @ np.diag(d[:1]) @ vh[:1, :]
     L = L_bar.reshape(F, M, N)
+    # L_tilde = u @ np.diag(d) @ vh
+    # L = reconstruct_sparse_patches(L_tilde, patch_locations, La.shape)
     return L
 
 
@@ -97,16 +158,21 @@ def update_V_B(
     max_it=50,
     epsilon=1e-3,
     delta=1e-3,
-    svd_l=5,
-    patch_size=4,
+    svd_l=50,
+    patch_size=8,
 ):
 
     Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
-    Va_tilde, patch_locations = extract_sparse_patches(
-        Va, patch_size, stride_ratio=2)
+    # Va_tilde, patch_locations = extract_sparse_patches(
+    #     Va, patch_size, stride_ratio=1)
 
-    u, s, vh = randomized_svd(Va_tilde, svd_l)
+    # u, s, vh = randomized_svd(Va_tilde, svd_l)
+    # u, s, vh = np.linalg.svd(Va_tilde, full_matrices=False)
 
+    # Va_bar = Va.reshape(F, M*N)
+    # u, s, vh = np.linalg.svd(Va_bar, full_matrices=False)
+
+    """ Testing without weighing
     # s is array of components
     dold = s.copy()
 
@@ -116,9 +182,12 @@ def update_V_B(
         dold = d
         if np.abs(d - dold).max() <= delta:
             break
-
-    V_tilde = u @ np.diag(d) @ vh
-    V = reconstruct_sparse_patches(V_tilde, patch_locations, S.shape)
+"""
+    # d = soft_thresh(s, 2*lambda_3/(rho*3))
+    # V_tilde = u @ np.diag(d) @ vh
+    V = t_svt(Va, 2*lambda_3/(rho*3))
+    # V = reconstruct_sparse_patches(V_tilde, patch_locations, S.shape)
+    # V = V_tilde.reshape(F, M, N)
     B = (L + X - V + (Lambda - Delta) / rho) / 2
     return V, B
 
@@ -134,8 +203,9 @@ def ADMM(
     # zero. What about initializing B with the commented line (np.repeat)?
     U = np.zeros_like(mask, dtype=np.float64)
     # U = np.repeat(Y[:, :, np.newaxis], F, axis=2)
-    B = np.zeros_like(mask, dtype=np.float64)
+    B = pseudoinverse(Y, mask)
     # B = np.repeat(Y[:, :, np.newaxis]/F, F, axis=2)
+    # B = np.zeros_like(mask, dtype=np.float64)
     V = np.zeros_like(mask, dtype=np.float64)
 
     # JM: Here there's potential for error. Why not make copies of U, V, B?
@@ -204,7 +274,8 @@ def ADMM(
             else:
                 rho = rho
             # rho=rho*(primal_res_norm/dual_res_norm)
-            if rho < 0.001:
+            if rho < 0.01:
+                print(f"value of {rho=:.2e} too small")
                 break
 
             U_old = U.copy()
@@ -233,7 +304,8 @@ def ADMM(
             print(f"|Y-H(X)|:\t{data_fidelity:.1e}, |U|_1:\t{l1_term:.1e}")
             print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
             print(
-                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]: .1e}, |X-B-V|: {primal_norms[2]: .1e}"
+                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]
+                    : .1e}, |X-B-V|: {primal_norms[2]: .1e}"
             )
 
             print()
@@ -244,16 +316,28 @@ def ADMM(
 
 
 if __name__ == "__main__":
-    x = load_video(
-        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[30:38, :, :]
-    mask = generate_mask(x.shape, 0.2)
-    y = phi(x, mask)
+    F = 8
+    START_FRAME = 30
+    # x = load_video(
+    #     "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
+    #     START_FRAME:START_FRAME+F,
+    #     :, :
+    # ]
+    # mask = generate_mask(x.shape, 0.2)
+    # y = phi(x, mask)
+
+    x, mask, y = load_mat("./datasets/kobe32_cacti.mat")
 
     F, M, N = mask.shape
 
+    # lambda_0 = 1
+    # lambda_1 = 0.1
+    # lambda_2 = 30.0
+    # lambda_3 = 0.03
+
     lambda_0 = 1
-    lambda_1 = 0.5
-    lambda_2 = 0.5
+    lambda_1 = 0.01
+    lambda_2 = 30.5
     lambda_3 = 0.5
     rho = 1
 
