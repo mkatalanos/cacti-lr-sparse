@@ -165,6 +165,8 @@ def update_V_B(
     patch_size=8,
 ):
 
+    F, M, N = X.shape
+    
     Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
     # Va_tilde, patch_locations = extract_sparse_patches(
     #     Va, patch_size, stride_ratio=1)
@@ -172,7 +174,7 @@ def update_V_B(
     # u, s, vh = randomized_svd(Va_tilde, svd_l)
     # u, s, vh = np.linalg.svd(Va_tilde, full_matrices=False)
 
-    Va_bar = Va.reshape(F, M*N)
+    Va_bar = bar(Va)
     u, s, vh = np.linalg.svd(Va_bar, full_matrices=False)
 
     """ Testing without weighing

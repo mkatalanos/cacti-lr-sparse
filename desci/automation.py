@@ -18,8 +18,8 @@ def process_args():
     parser.add_argument("lambda_3", type=float)
     parser.add_argument("-r", "--rho", type=float, default=1)
     parser.add_argument("-f", "--frames", type=int, default=8)
-    parser.add_argument("-b", "--block", type=float, default=0.2)
-    parser.add_argument("-i", "--iterations", type=int, default=500)
+    parser.add_argument("-b", "--block", type=float, default=0.5)
+    parser.add_argument("-i", "--iterations", type=int, default=1000)
     args = parser.parse_args()
     return args
 
@@ -39,19 +39,14 @@ if __name__ == "__main__":
 
     assert block < 1
 
-    x = load_video("./datasets/video/casia_angleview_p01_jump_a1.mp4")[
-        :, :, 30: (30 + frames)
+    START_FRAME = 30
+    x = load_video(
+        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
+        START_FRAME:START_FRAME+frames,
+        :, :
     ]
-
     mask = generate_mask(x.shape, block)
     y = phi(x, mask)
-
-    M, N, F = mask.shape
-
-    lambda_0 /= M * N
-    lambda_1 /= M * N * F
-    lambda_2 /= 3
-    lambda_3 /= 5
 
     print(
         f"Running with:, {lambda_0=}, {lambda_1=}, {
@@ -70,8 +65,8 @@ if __name__ == "__main__":
     )
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
 
-    out_title = f"out/l0_{lambda_0:.2e}_l1_{lambda_1:.2e}_l2_{
-        lambda_2:.2e}_l3_{lambda_3:.2e}_r_{rho:.2e}_it_{MAX_IT}"
+    out_title = f"out/l0_{lambda_0:.2f}_l1_{lambda_1:.2f}_l2_{
+        lambda_2:.2f}_l3_{lambda_3:.2f}_r_{rho:.2f}_it_{MAX_IT}_b_{block:.2f}"
 
     columns = ["|Y-H(X)|", "|U|_1", "|L|_*", "|V|_*",
                "|S-U|", "|S-V|", "|X-B-V|"]

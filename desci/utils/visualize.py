@@ -7,6 +7,7 @@ def write_cube(img, fpath):
         img = img[:, np.newaxis]
     assert len(img.shape) == 3
     img = img.transpose(1, 2, 0)
+
     H, W, F = img.shape
     side_by_side = np.zeros((H, W * F), dtype=np.uint8)
 
