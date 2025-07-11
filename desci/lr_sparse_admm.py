@@ -10,6 +10,8 @@ from utils.physics import phi, init, generate_mask, pseudoinverse
 from utils.visualize import visualize_cube
 from skimage.metrics import peak_signal_noise_ratio
 
+from numba import njit
+
 
 # @njit
 def soft_thresh(x, lambda_):
@@ -44,6 +46,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
     return X
 
 
+@njit
 def t_svt(Y, tau):
     """
     Tensor Singular Value Thresholding (t-SVT) over the first dimension (axis=0)
@@ -58,7 +61,7 @@ def t_svt(Y, tau):
     n1, n2, n3 = Y.shape
     # Step 1: FFT along the 1st dimension (axis=0)
     Y_fft = np.fft.fft(Y, axis=0)
-    W_fft = np.zeros_like(Y_fft, dtype=complex)
+    W_fft = np.zeros_like(Y_fft, dtype=np.complex128)
     halfn1 = int(np.ceil((n1 + 1) / 2))
 
     # Step 2: Matrix SVT on each lateral slice (fix i, vary j,k)
@@ -78,7 +81,7 @@ def t_svt(Y, tau):
     return D_tau_Y
 
 
-def update_L(
+def update_L_tsvd(
     B, Delta, rho, lambda_2, mask,
     delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=60
 ):
@@ -94,7 +97,7 @@ def update_L(
     return L
 
 
-def update_L_old(
+def update_L(
     B, Delta, rho, lambda_2, mask,
     delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=60
 ):
@@ -169,8 +172,8 @@ def update_V_B(
     # u, s, vh = randomized_svd(Va_tilde, svd_l)
     # u, s, vh = np.linalg.svd(Va_tilde, full_matrices=False)
 
-    # Va_bar = Va.reshape(F, M*N)
-    # u, s, vh = np.linalg.svd(Va_bar, full_matrices=False)
+    Va_bar = Va.reshape(F, M*N)
+    u, s, vh = np.linalg.svd(Va_bar, full_matrices=False)
 
     """ Testing without weighing
     # s is array of components
@@ -183,11 +186,11 @@ def update_V_B(
         if np.abs(d - dold).max() <= delta:
             break
 """
-    # d = soft_thresh(s, 2*lambda_3/(rho*3))
-    # V_tilde = u @ np.diag(d) @ vh
-    V = t_svt(Va, 2*lambda_3/(rho*3))
+    d = soft_thresh(s, 2*lambda_3/(rho*3))
+    V_tilde = u @ np.diag(d) @ vh
+    # V = t_svt(Va, 2*lambda_3/(rho*3))
     # V = reconstruct_sparse_patches(V_tilde, patch_locations, S.shape)
-    # V = V_tilde.reshape(F, M, N)
+    V = V_tilde.reshape(F, M, N)
     B = (L + X - V + (Lambda - Delta) / rho) / 2
     return V, B
 
@@ -304,8 +307,7 @@ def ADMM(
             print(f"|Y-H(X)|:\t{data_fidelity:.1e}, |U|_1:\t{l1_term:.1e}")
             print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
             print(
-                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]
-                    : .1e}, |X-B-V|: {primal_norms[2]: .1e}"
+                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]: .1e}, |X-B-V|: {primal_norms[2]: .1e}"
             )
 
             print()
@@ -316,29 +318,29 @@ def ADMM(
 
 
 if __name__ == "__main__":
-    F = 8
+    F = 4
     START_FRAME = 30
-    # x = load_video(
-    #     "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
-    #     START_FRAME:START_FRAME+F,
-    #     :, :
-    # ]
-    # mask = generate_mask(x.shape, 0.2)
-    # y = phi(x, mask)
+    x = load_video(
+        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
+        START_FRAME:START_FRAME+F,
+        :, :
+    ]
+    mask = generate_mask(x.shape, 0.2)
+    y = phi(x, mask)
 
-    x, mask, y = load_mat("./datasets/kobe32_cacti.mat")
+    # x, mask, y = load_mat("./datasets/kobe32_cacti.mat")
 
     F, M, N = mask.shape
 
-    # lambda_0 = 1
-    # lambda_1 = 0.1
-    # lambda_2 = 30.0
-    # lambda_3 = 0.03
-
     lambda_0 = 1
-    lambda_1 = 0.01
-    lambda_2 = 30.5
+    lambda_1 = 0.1
+    lambda_2 = 30.0
     lambda_3 = 0.5
+
+    # lambda_0 = 1
+    # lambda_1 = 0.01
+    # lambda_2 = 30.5
+    # lambda_3 = 0.5
     rho = 1
 
     X, S, L, U, V, B, crits = ADMM(

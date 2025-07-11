@@ -69,7 +69,7 @@ def pseudoinverse(y, mask):
     Applies the pseudoinverse of transform
     y, mask
     """
-    mff = np.multiply(mask, mask).sum(axis=0)
+    mff = np.multiply(mask, mask).sum(axis=0).astype(np.float64)
     mff[mff == 0] = 1e-8
     phiphit_inv = np.divide(y, mff)
     inverted = np.multiply(mask, phiphit_inv[np.newaxis, :, :])
