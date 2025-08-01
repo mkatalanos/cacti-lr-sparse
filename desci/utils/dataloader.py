@@ -25,7 +25,7 @@ def load_mat(fpath: str):
     M, N, F = mask.shape
 
     # Truncate to F
-    x = x[:, :, :F]
+    # x = x[:, :, :F]
     meas = meas[:, :, 0]
 
     # Transpose to F,M,N

@@ -2,7 +2,7 @@ import argparse
 
 from lr_sparse_admm import ADMM
 
-from utils.dataloader import load_video
+from utils.dataloader import load_video, load_mat
 from utils.physics import generate_mask, phi
 from utils.visualize import write_cube
 
@@ -19,7 +19,7 @@ def process_args():
     parser.add_argument("-r", "--rho", type=float, default=1)
     parser.add_argument("-f", "--frames", type=int, default=8)
     parser.add_argument("-b", "--block", type=float, default=0.5)
-    parser.add_argument("-i", "--iterations", type=int, default=1000)
+    parser.add_argument("-i", "--iterations", type=int, default=500)
     args = parser.parse_args()
     return args
 
@@ -39,14 +39,19 @@ if __name__ == "__main__":
 
     assert block < 1
 
-    START_FRAME = 30
-    x = load_video(
-        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
-        START_FRAME:START_FRAME+frames,
-        :, :
-    ]
-    mask = generate_mask(x.shape, block)
-    y = phi(x, mask)
+    # START_FRAME = 30
+    # x = load_video(
+    #     "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
+    #     START_FRAME:START_FRAME+frames,
+    #     :, :
+    # ]
+    # mask = generate_mask(x.shape, block)
+    # y = phi(x, mask)
+
+    x, mask, y = load_mat("./datasets/drop40_cacti.mat")
+    block = 0.5
+
+    F, M, N = mask.shape
 
     print(
         f"Running with:, {lambda_0=}, {lambda_1=}, {

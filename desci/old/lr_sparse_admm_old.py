@@ -5,7 +5,7 @@ import numpy as np
 # from numba import njit
 from numpy.typing import NDArray
 from sklearn.utils.extmath import randomized_svd
-from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
+from utils.patches import extract_sparse_patches, reconstruct_sparse_patches_old
 from utils.physics import phi, phit, init
 from utils.visualize import visualize_cube
 
@@ -112,7 +112,7 @@ def update_V(
             break
     V_tilde = u @ np.diag(d) @ vh
 
-    V = reconstruct_sparse_patches(V_tilde, patch_locations, S.shape)
+    V = reconstruct_sparse_patches_old(V_tilde, patch_locations, S.shape)
 
     return V
 

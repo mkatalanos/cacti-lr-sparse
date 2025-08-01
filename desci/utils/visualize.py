@@ -19,7 +19,7 @@ def write_cube(img, fpath):
 
 def visualize_cube(img):
     if len(img.shape) != 3:
-        img = img[:, np.newaxis]
+        img = img[np.newaxis, :]
     assert len(img.shape) == 3
     img = img.transpose(1, 2, 0)
 

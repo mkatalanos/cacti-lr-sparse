@@ -10,16 +10,19 @@ from utils.physics import phi, init, generate_mask, pseudoinverse
 from utils.visualize import visualize_cube
 from skimage.metrics import peak_signal_noise_ratio
 
+from utils.wnnm import framewise_wnnm
+
 from numba import njit
 
 
-# @njit
+@njit
 def soft_thresh(x, lambda_):
     x = x.astype(np.float64)
     out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
     return out
 
 
+@njit
 def bar(x: NDArray) -> NDArray:
     # assert len(x.shape) == 3
     F, M, N = x.shape
@@ -27,6 +30,7 @@ def bar(x: NDArray) -> NDArray:
     return x_bar
 
 
+@njit
 def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
     F, M, N = mask.shape
@@ -97,6 +101,7 @@ def update_L_tsvd(
     return L
 
 
+@njit
 def update_L(
     B, Delta, rho, lambda_2, mask,
     delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=60
@@ -106,11 +111,11 @@ def update_L(
     """
     F, M, N = mask.shape
     La = B + Delta / rho
-    La_bar = La.reshape(F, M * N)
-    u, s, vh = np.linalg.svd(La_bar, full_matrices=False)
+    # La_bar = La.reshape(F, M * N)
+    # u, s, vh = np.linalg.svd(La_bar, full_matrices=False)
     # u, s, vh = randomized_svd(La_bar, svd_l)
-    # La_tilde, patch_locations = extract_sparse_patches(La, 32)
-    # u, s, vh = np.linalg.svd(La_tilde, full_matrices=False)
+    La_tilde, patch_locations = extract_sparse_patches(La, 32,1)
+    u, s, vh = np.linalg.svd(La_tilde, full_matrices=False)
 
     """ Trying without weighting
 
@@ -128,14 +133,15 @@ def update_L(
 
     """
     d = soft_thresh(s, lambda_2/rho)
-    L_bar = u @ np.diag(d) @ vh
+    # L_bar = u @ np.diag(d) @ vh
     # L_bar = u[:, :1] @ np.diag(d[:1]) @ vh[:1, :]
-    L = L_bar.reshape(F, M, N)
-    # L_tilde = u @ np.diag(d) @ vh
-    # L = reconstruct_sparse_patches(L_tilde, patch_locations, La.shape)
+    # L = L_bar.reshape(F, M, N)
+    L_tilde = u @ np.diag(d) @ vh
+    L = reconstruct_sparse_patches(L_tilde, patch_locations, La.shape)
     return L
 
 
+@njit
 def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
     return S
@@ -144,11 +150,49 @@ def update_S(U, V, Theta, Gamma, rho):
 # @njit
 
 
+@njit
 def update_U(S, Theta, lambda_1, rho):
     U_a = S + Theta / rho
     return soft_thresh(U_a, lambda_1 / rho)
 
 
+def update_V_B_fwise(
+    X,
+    L,
+    S,
+    Gamma,
+    Lambda,
+    Delta,
+    rho,
+    lambda_3,
+    max_it=50,
+    epsilon=1e-3,
+    delta=1e-3,
+    svd_l=50,
+    patch_size=8,
+):
+
+    F, M, N = X.shape
+
+    Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
+    Va_t = Va.transpose(1, 2, 0)
+    c = 2*lambda_3/(rho*3)
+    V = np.zeros_like(Va)
+
+    # Framewise denoise
+    for f in range(F):
+        V[f, :, :] = np.squeeze(
+            framewise_wnnm(
+                Va_t[:, :, f][:, :, np.newaxis],
+                patchRadius=patch_size)
+        )
+
+    # V = V_tilde.reshape(F, M, N)
+    B = (L + X - V + (Lambda - Delta) / rho) / 2
+    return V, B
+
+
+@njit
 def update_V_B(
     X,
     L,
@@ -166,13 +210,8 @@ def update_V_B(
 ):
 
     F, M, N = X.shape
-    
-    Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
-    # Va_tilde, patch_locations = extract_sparse_patches(
-    #     Va, patch_size, stride_ratio=1)
 
-    # u, s, vh = randomized_svd(Va_tilde, svd_l)
-    # u, s, vh = np.linalg.svd(Va_tilde, full_matrices=False)
+    Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
 
     Va_bar = bar(Va)
     u, s, vh = np.linalg.svd(Va_bar, full_matrices=False)
@@ -190,9 +229,55 @@ def update_V_B(
 """
     d = soft_thresh(s, 2*lambda_3/(rho*3))
     V_tilde = u @ np.diag(d) @ vh
-    # V = t_svt(Va, 2*lambda_3/(rho*3))
-    # V = reconstruct_sparse_patches(V_tilde, patch_locations, S.shape)
     V = V_tilde.reshape(F, M, N)
+    B = (L + X - V + (Lambda - Delta) / rho) / 2
+    return V, B
+
+
+def update_V_B_patches(
+    X,
+    L,
+    S,
+    Gamma,
+    Lambda,
+    Delta,
+    rho,
+    lambda_3,
+    max_it=50,
+    epsilon=1e-3,
+    delta=1e-3,
+    svd_l=50,
+    patch_size=8,
+):
+
+    F, M, N = X.shape
+
+    Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
+    Va_tilde, patch_locations = extract_sparse_patches(
+        Va, patch_size, stride_ratio=16)
+
+    u, s, vh = randomized_svd(Va_tilde, svd_l)
+    u, s, vh = np.linalg.svd(Va_tilde, full_matrices=False)
+
+    # Va_bar = bar(Va)
+    # u, s, vh = np.linalg.svd(Va_bar, full_matrices=False)
+
+    """ Testing without weighing
+    # s is array of components
+    dold = s.copy()
+
+    for t in range(max_it):
+        d = s - ((2*lambda_3)/(3*rho)) * (1 / (dold + epsilon))
+        d = d.clip(0)
+        dold = d
+        if np.abs(d - dold).max() <= delta:
+            break
+"""
+    d = soft_thresh(s, 2*lambda_3/(rho*3))
+    V_tilde = u @ np.diag(d) @ vh
+    # V = t_svt(Va, 2*lambda_3/(rho*3))
+    V = reconstruct_sparse_patches(V_tilde, patch_locations, S.shape)
+    # V = V_tilde.reshape(F, M, N)
     B = (L + X - V + (Lambda - Delta) / rho) / 2
     return V, B
 
@@ -279,9 +364,9 @@ def ADMM(
             else:
                 rho = rho
             # rho=rho*(primal_res_norm/dual_res_norm)
-            if rho < 0.01:
-                print(f"value of {rho=:.2e} too small")
-                break
+            # if rho < 0.01:
+            #     print(f"value of {rho=:.2e} too small")
+            #     break
 
             U_old = U.copy()
             V_old = V.copy()
@@ -309,7 +394,8 @@ def ADMM(
             print(f"|Y-H(X)|:\t{data_fidelity:.1e}, |U|_1:\t{l1_term:.1e}")
             print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
             print(
-                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]: .1e}, |X-B-V|: {primal_norms[2]: .1e}"
+                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]
+                    : .1e}, |X-B-V|: {primal_norms[2]: .1e}"
             )
 
             print()
@@ -320,30 +406,30 @@ def ADMM(
 
 
 if __name__ == "__main__":
-    F = 4
+    F = 20
     START_FRAME = 30
     x = load_video(
         "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
         START_FRAME:START_FRAME+F,
         :, :
     ]
-    mask = generate_mask(x.shape, 0.2)
+    mask = generate_mask(x.shape, 0.5)
     y = phi(x, mask)
 
-    # x, mask, y = load_mat("./datasets/kobe32_cacti.mat")
+    # x, mask, y = load_mat("./datasets/drop40_cacti.mat")
 
     F, M, N = mask.shape
 
-    lambda_0 = 1
-    lambda_1 = 0.1
-    lambda_2 = 30.0
-    lambda_3 = 0.5
-
     # lambda_0 = 1
-    # lambda_1 = 0.01
-    # lambda_2 = 30.5
+    # lambda_1 = 0.1
+    # lambda_2 = 30.0
     # lambda_3 = 0.5
-    rho = 1
+
+    lambda_0 = 1
+    lambda_1 = 3e-2
+    lambda_2 = 10
+    lambda_3 = 1e-1
+    rho = 1e-2
 
     X, S, L, U, V, B, crits = ADMM(
         y,
