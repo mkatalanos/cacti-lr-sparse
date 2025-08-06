@@ -39,17 +39,19 @@ if __name__ == "__main__":
 
     assert block < 1
 
-    # START_FRAME = 30
-    # x = load_video(
-    #     "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
-    #     START_FRAME:START_FRAME+frames,
-    #     :, :
-    # ]
-    # mask = generate_mask(x.shape, block)
-    # y = phi(x, mask)
+    START_FRAME = 30
+    name="CASIA"
+    x = load_video(
+        "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
+        START_FRAME:START_FRAME+frames,
+        :, :
+    ]
+    mask = generate_mask(x.shape, block)
+    y = phi(x, mask)
 
-    x, mask, y = load_mat("./datasets/drop40_cacti.mat")
-    block = 0.5
+    # x, mask, y = load_mat("./datasets/drop40_cacti.mat")
+    # name = "DROP"
+    # block = 0.5
 
     F, M, N = mask.shape
 
@@ -70,8 +72,8 @@ if __name__ == "__main__":
     )
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
 
-    out_title = f"out/l0_{lambda_0:.2f}_l1_{lambda_1:.2f}_l2_{
-        lambda_2:.2f}_l3_{lambda_3:.2f}_r_{rho:.2f}_it_{MAX_IT}_b_{block:.2f}"
+    out_title = f"out/{name}_F_{frames}_b{block:.2f}_l0_{lambda_0:.2f}_l1_{lambda_1:.2f}_l2_{
+        lambda_2:.2f}_l3_{lambda_3:.2f}_r_{rho:.2f}_it_{MAX_IT}"
 
     columns = ["|Y-H(X)|", "|U|_1", "|L|_*", "|V|_*",
                "|S-U|", "|S-V|", "|X-B-V|"]

@@ -114,7 +114,7 @@ def update_L(
     # La_bar = La.reshape(F, M * N)
     # u, s, vh = np.linalg.svd(La_bar, full_matrices=False)
     # u, s, vh = randomized_svd(La_bar, svd_l)
-    La_tilde, patch_locations = extract_sparse_patches(La, 32,1)
+    La_tilde, patch_locations = extract_sparse_patches(La, 32,8)
     u, s, vh = np.linalg.svd(La_tilde, full_matrices=False)
 
     """ Trying without weighting
@@ -283,7 +283,7 @@ def update_V_B_patches(
 
 
 def ADMM(
-        y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3, mu=10, tau=2):
+        y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3, mu=10, tau=2, verbose=True):
     F, M, N = mask.shape
 
     # Init
@@ -317,7 +317,8 @@ def ADMM(
     try:
         for it in range(MAX_IT):
 
-            print(f"Starting iteration {it} with rho: {float(rho):.2f}")
+            if verbose:
+                print(f"Starting iteration {it} with rho: {float(rho):.2f}")
             # Can be done in parallel
             X = update_X(Y, B, V, Lambda, mask, rho, lambda_0)
             S = update_S(U, V, Theta, Gamma, rho)
@@ -363,10 +364,14 @@ def ADMM(
                 rho = rho / tau
             else:
                 rho = rho
-            # rho=rho*(primal_res_norm/dual_res_norm)
+
             # if rho < 0.01:
             #     print(f"value of {rho=:.2e} too small")
             #     break
+            if primal_res_norm < 1e-4 and dual_res_norm<1e-4:
+                if verbose:
+                    print(f"{primal_res_norm=:.2e} or {dual_res_norm=:.2e} less than 1e-4")
+                break
 
             U_old = U.copy()
             V_old = V.copy()
@@ -391,14 +396,15 @@ def ADMM(
             )
             crits.append(crit)
 
-            print(f"|Y-H(X)|:\t{data_fidelity:.1e}, |U|_1:\t{l1_term:.1e}")
-            print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
-            print(
-                f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]
-                    : .1e}, |X-B-V|: {primal_norms[2]: .1e}"
-            )
+            if verbose:
+                print(f"|Y-H(X)|:\t{data_fidelity:.1e}, |U|_1:\t{l1_term:.1e}")
+                print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
+                print(
+                    f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]
+                        : .1e}, |X-B-V|: {primal_norms[2]: .1e}"
+                )
 
-            print()
+                print()
     except KeyboardInterrupt:
         return X, S, L, U, V, B, crits
 
