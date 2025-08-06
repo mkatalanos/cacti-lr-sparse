@@ -3,6 +3,7 @@ import argparse
 import pandas as pd
 from lr_sparse_admm import ADMM
 from skimage.metrics import peak_signal_noise_ratio
+from skimage.metrics import structural_similarity
 from utils.dataloader import load_mat, load_video
 from utils.physics import generate_mask, phi
 from utils.visualize import write_cube
@@ -54,8 +55,8 @@ if __name__ == "__main__":
     F, M, N = mask.shape
 
     print(
-        f"Running with:, {lambda_0 = }, {lambda_1 = }, {
-            lambda_2 = }, {lambda_3 = }, {frames = }, {rho = }, {block = }, {MAX_IT = }"
+        f"Running with:, {lambda_0=}, {lambda_1=}, {
+            lambda_2=}, {lambda_3=}, {frames=}, {rho=}, {block=}, {MAX_IT=}"
     )
 
     X, S, L, U, V, B, crits = ADMM(
@@ -68,7 +69,9 @@ if __name__ == "__main__":
         lambda_3=lambda_3,
         MAX_IT=MAX_IT,
     )
-    psnr = peak_signal_noise_ratio(x, X, data_range=255)
+    PSNR = peak_signal_noise_ratio(x, X, data_range=255)
+    SSIM = structural_similarity(x, X, data_range=255)
+    print(f"{PSNR=:.2f},{SSIM=:.2f}")
 
     out_title = f"out/{name}_F_{frames}_b{block: .2f}_l0_{lambda_0: .2f}_l1_{lambda_1: .2f}_l2_{
         lambda_2: .2f}_l3_{lambda_3: .2f}_r_{rho: .2f}_it_{MAX_IT}"
@@ -76,7 +79,8 @@ if __name__ == "__main__":
     columns = ["|Y-H(X)|", "|U|_1", "|L|_*", "|V|_*",
                "|S-U|", "|S-V|", "|X-B-V|", "primal", "dual"]
     df = pd.DataFrame(crits, columns=columns)
-    df["PSNR"] = psnr
+    df["PSNR"] = PSNR
+    df["SSIM"] = SSIM
 
     df.to_csv(f"{out_title}.csv")
 
