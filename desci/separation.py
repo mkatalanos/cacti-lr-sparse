@@ -1,7 +1,9 @@
 import numpy as np
-from utils.dataloader import load_video
+from utils.dataloader import load_video, load_mat
+from numba import njit
 
 
+@njit
 def singular_value_thresholding(X, tau):
     U, S, Vt = np.linalg.svd(X, full_matrices=False)
     S_thresh = np.maximum(S - tau, 0)
@@ -13,12 +15,13 @@ def rank1_projection(X):
     return S[0] * np.outer(U[:, 0], Vt[0, :])
 
 
+@njit
 def soft_thresholding(X, tau):
     return np.sign(X) * np.maximum(np.abs(X) - tau, 0)
 
 
 def rpca_admm(
-        X, lamb=1e-2, rho=1e-3, max_iter=1000, verbose=False, mu=20, tau=20
+        X, lamb=1e-2, rho=1e-3, max_iter=1000, verbose=False, mu=10, tau=2
 ):
     M, N = X.shape
 
@@ -67,13 +70,13 @@ def rpca_admm(
 if __name__ == "__main__":
     from utils.visualize import visualize_cube
 
-    x = load_video("./datasets/video/casia_angleview_p01_jump_a1.mp4")[30:60]
+    x, _, _ = load_mat("./datasets/kobe32_cacti.mat")
 
     F, M, N = x.shape
 
     x_bar = x.reshape(F, M * N)
 
-    L, S, rho = rpca_admm(x_bar, lamb=1/np.sqrt(M*N), rho=10)
+    L, S, rho = rpca_admm(x_bar, lamb=1e-4, rho=0.1)
     print(np.linalg.norm(S, 1))
 
     L = L.reshape(F, M, N)
