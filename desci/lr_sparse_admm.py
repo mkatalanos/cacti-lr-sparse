@@ -10,8 +10,6 @@ from utils.physics import phi, init, generate_mask, pseudoinverse
 from utils.visualize import visualize_cube
 from skimage.metrics import peak_signal_noise_ratio
 
-from utils.wnnm import framewise_wnnm
-
 from numba import njit
 
 
@@ -114,7 +112,7 @@ def update_L(
     # La_bar = La.reshape(F, M * N)
     # u, s, vh = np.linalg.svd(La_bar, full_matrices=False)
     # u, s, vh = randomized_svd(La_bar, svd_l)
-    La_tilde, patch_locations = extract_sparse_patches(La, 32,8)
+    La_tilde, patch_locations = extract_sparse_patches(La, 32, 8)
     u, s, vh = np.linalg.svd(La_tilde, full_matrices=False)
 
     """ Trying without weighting
@@ -147,49 +145,10 @@ def update_S(U, V, Theta, Gamma, rho):
     return S
 
 
-# @njit
-
-
 @njit
 def update_U(S, Theta, lambda_1, rho):
     U_a = S + Theta / rho
     return soft_thresh(U_a, lambda_1 / rho)
-
-
-def update_V_B_fwise(
-    X,
-    L,
-    S,
-    Gamma,
-    Lambda,
-    Delta,
-    rho,
-    lambda_3,
-    max_it=50,
-    epsilon=1e-3,
-    delta=1e-3,
-    svd_l=50,
-    patch_size=8,
-):
-
-    F, M, N = X.shape
-
-    Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
-    Va_t = Va.transpose(1, 2, 0)
-    c = 2*lambda_3/(rho*3)
-    V = np.zeros_like(Va)
-
-    # Framewise denoise
-    for f in range(F):
-        V[f, :, :] = np.squeeze(
-            framewise_wnnm(
-                Va_t[:, :, f][:, :, np.newaxis],
-                patchRadius=patch_size)
-        )
-
-    # V = V_tilde.reshape(F, M, N)
-    B = (L + X - V + (Lambda - Delta) / rho) / 2
-    return V, B
 
 
 @njit
@@ -289,8 +248,6 @@ def ADMM(
     # Init
     Y = y.reshape((M, N)).astype(np.float64)
 
-    # JM: Initialization for U and V looks good. We expect them to be near
-    # zero. What about initializing B with the commented line (np.repeat)?
     U = np.zeros_like(mask, dtype=np.float64)
     # U = np.repeat(Y[:, :, np.newaxis], F, axis=2)
     B = pseudoinverse(Y, mask)
@@ -298,7 +255,6 @@ def ADMM(
     # B = np.zeros_like(mask, dtype=np.float64)
     V = np.zeros_like(mask, dtype=np.float64)
 
-    # JM: Here there's potential for error. Why not make copies of U, V, B?
     U_old = U.copy()
     B_old = B.copy()
     V_old = V.copy()
@@ -311,8 +267,6 @@ def ADMM(
     # Gamma = np.zeros_like(mask, dtype=np.float64)
     # Lambda = np.zeros_like(mask, dtype=np.float64)
 
-    # JM: Just to make memory fixed from the beginning (even though it's a small
-    # footprint), I would declare crits as a vector/array of tuples with MAX_IT entries.
     crits = []
     try:
         for it in range(MAX_IT):
@@ -325,7 +279,6 @@ def ADMM(
             L = update_L(B, Delta, rho, lambda_2, mask)
             # Wait here if parallelizing
 
-            # JM: do you need V as input to update_V_B?
             # Can be done in parallel
             U = update_U(S, Theta, lambda_1, rho)
             V, B = update_V_B(X, L, S, Gamma, Lambda, Delta, rho, lambda_3)
@@ -338,7 +291,6 @@ def ADMM(
             Delta = Delta + rho * (B - L)
             Lambda = Lambda + rho * (X - B - V)
 
-            # JM: **dual residual hasn't been updated: it's missing one entry; see pdf document**
             primal_res = np.array(
                 [S - U,
                  S - V,
@@ -356,8 +308,6 @@ def ADMM(
 
             primal_norms = [np.linalg.norm(term) for term in primal_res]
 
-            # JM: these can be defined as parameters outside the function
-
             if primal_res_norm > mu * dual_res_norm:
                 rho = tau * rho
             elif dual_res_norm > mu * primal_res_norm:
@@ -368,9 +318,10 @@ def ADMM(
             # if rho < 0.01:
             #     print(f"value of {rho=:.2e} too small")
             #     break
-            if primal_res_norm < 1e-4 and dual_res_norm<1e-4:
+            if primal_res_norm < 1e-4 and dual_res_norm < 1e-4:
                 if verbose:
-                    print(f"{primal_res_norm=:.2e} or {dual_res_norm=:.2e} less than 1e-4")
+                    print(f"{primal_res_norm=:.2e} or {
+                          dual_res_norm=:.2e} less than 1e-4")
                 break
 
             U_old = U.copy()
@@ -400,8 +351,7 @@ def ADMM(
                 print(f"|Y-H(X)|:\t{data_fidelity:.1e}, |U|_1:\t{l1_term:.1e}")
                 print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
                 print(
-                    f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]
-                        : .1e}, |X-B-V|: {primal_norms[2]: .1e}"
+                    f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]: .1e}, |X-B-V|: {primal_norms[2]: .1e}"
                 )
 
                 print()
@@ -412,14 +362,14 @@ def ADMM(
 
 
 if __name__ == "__main__":
-    F = 20
+    F = 50
     START_FRAME = 30
     x = load_video(
         "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
         START_FRAME:START_FRAME+F,
         :, :
     ]
-    mask = generate_mask(x.shape, 0.5)
+    mask = generate_mask(x.shape, 0.2)
     y = phi(x, mask)
 
     # x, mask, y = load_mat("./datasets/drop40_cacti.mat")
@@ -446,6 +396,7 @@ if __name__ == "__main__":
         lambda_2=lambda_2,
         lambda_3=lambda_3,
         MAX_IT=500,
+        verbose=False
     )
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
     print(f"PSNR:", psnr)
