@@ -1,13 +1,11 @@
 import argparse
 
+import pandas as pd
 from lr_sparse_admm import ADMM
-
-from utils.dataloader import load_video, load_mat
+from skimage.metrics import peak_signal_noise_ratio
+from utils.dataloader import load_mat, load_video
 from utils.physics import generate_mask, phi
 from utils.visualize import write_cube
-
-import pandas as pd
-from skimage.metrics import peak_signal_noise_ratio
 
 
 def process_args():
@@ -40,7 +38,7 @@ if __name__ == "__main__":
     assert block < 1
 
     START_FRAME = 30
-    name="CASIA"
+    name = "CASIA"
     x = load_video(
         "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
         START_FRAME:START_FRAME+frames,
@@ -56,8 +54,8 @@ if __name__ == "__main__":
     F, M, N = mask.shape
 
     print(
-        f"Running with:, {lambda_0=}, {lambda_1=}, {
-            lambda_2=}, {lambda_3=}, {frames=}, {rho=}, {block=}, {MAX_IT=}"
+        f"Running with:, {lambda_0 = }, {lambda_1 = }, {
+            lambda_2 = }, {lambda_3 = }, {frames = }, {rho = }, {block = }, {MAX_IT = }"
     )
 
     X, S, L, U, V, B, crits = ADMM(
@@ -72,11 +70,11 @@ if __name__ == "__main__":
     )
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
 
-    out_title = f"out/{name}_F_{frames}_b{block:.2f}_l0_{lambda_0:.2f}_l1_{lambda_1:.2f}_l2_{
-        lambda_2:.2f}_l3_{lambda_3:.2f}_r_{rho:.2f}_it_{MAX_IT}"
+    out_title = f"out/{name}_F_{frames}_b{block: .2f}_l0_{lambda_0: .2f}_l1_{lambda_1: .2f}_l2_{
+        lambda_2: .2f}_l3_{lambda_3: .2f}_r_{rho: .2f}_it_{MAX_IT}"
 
     columns = ["|Y-H(X)|", "|U|_1", "|L|_*", "|V|_*",
-               "|S-U|", "|S-V|", "|X-B-V|"]
+               "|S-U|", "|S-V|", "|X-B-V|", "primal", "dual"]
     df = pd.DataFrame(crits, columns=columns)
     df["PSNR"] = psnr
 

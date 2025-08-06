@@ -344,6 +344,8 @@ def ADMM(
                 primal_norms[0],
                 primal_norms[1],
                 primal_norms[2],
+                primal_res_norm,
+                dual_res_norm
             )
             crits.append(crit)
 
@@ -352,6 +354,9 @@ def ADMM(
                 print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
                 print(
                     f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]: .1e}, |X-B-V|: {primal_norms[2]: .1e}"
+                )
+                print(
+                    f"primal_res_norm: {primal_res_norm: .2e}, dual_res_norm: {dual_res_norm: .2e}"
                 )
 
                 print()
