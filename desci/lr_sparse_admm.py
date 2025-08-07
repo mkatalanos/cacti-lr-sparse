@@ -314,6 +314,10 @@ def ADMM(
             else:
                 rho = rho
 
+            if rho<1e-3:
+                if verbose:
+                    print(f"{rho=:.2e} has become too small")
+                break
             if primal_res_norm < 1e-3 and dual_res_norm < 1e-3:
                 if verbose:
                     print(f"{primal_res_norm=:.2e} or {
@@ -364,12 +368,12 @@ def ADMM(
                 print(
                     f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]:.1e}, |X-B-V|: {primal_norms[2]:.1e}"
                 )
-                print(
-                    f"primal_res_norm: {primal_res_norm: .2e}, dual_res_norm: {
-                        dual_res_norm: .2e}"
-                )
+            print(
+                f"primal_res_norm: {primal_res_norm: .2e}, dual_res_norm: {
+                    dual_res_norm: .2e}"
+            )
 
-                print()
+            print()
     except KeyboardInterrupt:
         return X, S, L, U, V, B, crits
 
