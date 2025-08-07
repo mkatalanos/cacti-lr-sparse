@@ -68,6 +68,7 @@ if __name__ == "__main__":
         lambda_2=lambda_2,
         lambda_3=lambda_3,
         MAX_IT=MAX_IT,
+        verbose=False
     )
     PSNR = peak_signal_noise_ratio(x, X, data_range=255)
     SSIM = structural_similarity(x, X, data_range=255)

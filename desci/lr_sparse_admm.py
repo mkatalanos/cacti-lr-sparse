@@ -3,7 +3,6 @@ from typing import Any, Callable, Tuple
 import numpy as np
 
 from numpy.typing import NDArray
-from sklearn.utils.extmath import randomized_svd
 from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
 from utils.dataloader import load_video, load_mat
 from utils.physics import phi, init, generate_mask, pseudoinverse
@@ -109,11 +108,11 @@ def update_L(
     """
     F, M, N = mask.shape
     La = B + Delta / rho
-    # La_bar = La.reshape(F, M * N)
-    # u, s, vh = np.linalg.svd(La_bar, full_matrices=False)
+    La_bar = La.reshape(F, M * N)
+    u, s, vh = np.linalg.svd(La_bar, full_matrices=False)
     # u, s, vh = randomized_svd(La_bar, svd_l)
-    La_tilde, patch_locations = extract_sparse_patches(La, 32, 8)
-    u, s, vh = np.linalg.svd(La_tilde, full_matrices=False)
+    # La_tilde, patch_locations = extract_sparse_patches(La, 32, 8)
+    # u, s, vh = np.linalg.svd(La_tilde, full_matrices=False)
 
     """ Trying without weighting
 
@@ -131,11 +130,11 @@ def update_L(
 
     """
     d = soft_thresh(s, lambda_2/rho)
-    # L_bar = u @ np.diag(d) @ vh
+    L_bar = u @ np.diag(d) @ vh
     # L_bar = u[:, :1] @ np.diag(d[:1]) @ vh[:1, :]
-    # L = L_bar.reshape(F, M, N)
-    L_tilde = u @ np.diag(d) @ vh
-    L = reconstruct_sparse_patches(L_tilde, patch_locations, La.shape)
+    L = L_bar.reshape(F, M, N)
+    # L_tilde = u @ np.diag(d) @ vh
+    # L = reconstruct_sparse_patches(L_tilde, patch_locations, La.shape)
     return L
 
 
@@ -152,7 +151,7 @@ def update_U(S, Theta, lambda_1, rho):
 
 
 @njit
-def update_V_B(
+def update_V_B_bar(
     X,
     L,
     S,
@@ -193,7 +192,7 @@ def update_V_B(
     return V, B
 
 
-def update_V_B_patches(
+def update_V_B(
     X,
     L,
     S,
@@ -215,7 +214,7 @@ def update_V_B_patches(
     Va_tilde, patch_locations = extract_sparse_patches(
         Va, patch_size, stride_ratio=16)
 
-    u, s, vh = randomized_svd(Va_tilde, svd_l)
+    # u, s, vh = randomized_svd(Va_tilde, svd_l)
     u, s, vh = np.linalg.svd(Va_tilde, full_matrices=False)
 
     # Va_bar = bar(Va)
@@ -271,8 +270,8 @@ def ADMM(
     try:
         for it in range(MAX_IT):
 
-            if verbose:
-                print(f"Starting iteration {it} with rho: {float(rho):.2f}")
+            # if verbose:
+            print(f"Starting iteration {it} with rho: {float(rho):.2f}")
             # Can be done in parallel
             X = update_X(Y, B, V, Lambda, mask, rho, lambda_0)
             S = update_S(U, V, Theta, Gamma, rho)
@@ -328,38 +327,52 @@ def ADMM(
             V_old = V.copy()
             B_old = B.copy()
 
-            V_t, _ = extract_sparse_patches(V, 16)
+            if verbose:
+                V_t, _ = extract_sparse_patches(V, 16)
+                data_fidelity = 0.5 * \
+                    np.linalg.norm(Y - phi(X, mask).reshape(M, N))
+                l1_term = np.linalg.norm(U.reshape(-1), 1)
+                nuc_l_term = np.linalg.norm(bar(L), ord="nuc")
+                nuc_v_term = np.linalg.norm(V_t, ord="nuc")
 
-            data_fidelity = 0.5 * \
-                np.linalg.norm(Y - phi(X, mask).reshape(M, N))
-            l1_term = np.linalg.norm(U.reshape(-1), 1)
-            nuc_l_term = np.linalg.norm(bar(L), ord="nuc")
-            nuc_v_term = np.linalg.norm(V_t, ord="nuc")
+                crit = (
+                    data_fidelity,
+                    l1_term,
+                    nuc_l_term,
+                    nuc_v_term,
+                    primal_norms[0],
+                    primal_norms[1],
+                    primal_norms[2],
+                    primal_res_norm,
+                    dual_res_norm
+                )
+            else:
+                crit = (
+                    0,
+                    0,
+                    0,
+                    0,
+                    primal_norms[0],
+                    primal_norms[1],
+                    primal_norms[2],
+                    primal_res_norm,
+                    dual_res_norm
+                )
 
-            crit = (
-                data_fidelity,
-                l1_term,
-                nuc_l_term,
-                nuc_v_term,
-                primal_norms[0],
-                primal_norms[1],
-                primal_norms[2],
-                primal_res_norm,
-                dual_res_norm
-            )
             crits.append(crit)
 
             if verbose:
                 print(f"|Y-H(X)|:\t{data_fidelity:.1e}, |U|_1:\t{l1_term:.1e}")
                 print(f"|L|_*:\t\t{nuc_l_term:.1e}, |V|_*:\t{nuc_v_term:.1e}")
                 print(
-                    f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]: .1e}, |X-B-V|: {primal_norms[2]: .1e}"
+                    f"|S-U|: {primal_norms[0]: .1e}, |S-V|: {primal_norms[1]:.1e}, |X-B-V|: {primal_norms[2]:.1e}"
                 )
-                print(
-                    f"primal_res_norm: {primal_res_norm: .2e}, dual_res_norm: {dual_res_norm: .2e}"
-                )
+            print(
+                f"primal_res_norm: {primal_res_norm: .2e}, dual_res_norm: {
+                    dual_res_norm: .2e}"
+            )
 
-                print()
+            print()
     except KeyboardInterrupt:
         return X, S, L, U, V, B, crits
 

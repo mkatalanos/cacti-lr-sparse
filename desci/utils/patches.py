@@ -31,7 +31,7 @@ def extract_sparse_patches(
     P = p * p
 
     L = 0
-    stride = p // stride_ratio if stride_ratio > 0 else 1
+    stride = p // stride_ratio if stride_ratio > 0 and stride_ratio < patch_size else 1
 
     patches = []
     locations = []
