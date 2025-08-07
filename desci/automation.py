@@ -5,6 +5,7 @@ from lr_sparse_admm import ADMM
 from skimage.metrics import peak_signal_noise_ratio
 from skimage.metrics import structural_similarity
 from utils.dataloader import load_mat, load_video
+import time
 from utils.physics import generate_mask, phi
 from utils.visualize import write_cube
 
@@ -59,6 +60,7 @@ if __name__ == "__main__":
             lambda_2=}, {lambda_3=}, {frames=}, {rho=}, {block=}, {MAX_IT=}"
     )
 
+    start_time = time.time()
     X, S, L, U, V, B, crits = ADMM(
         y,
         mask,
@@ -70,9 +72,13 @@ if __name__ == "__main__":
         MAX_IT=MAX_IT,
         verbose=False
     )
+    end_time = time.time()
+
     PSNR = peak_signal_noise_ratio(x, X, data_range=255)
     SSIM = structural_similarity(x, X, data_range=255)
-    print(f"{PSNR=:.2f},{SSIM=:.2f}")
+    duration = end_time-start_time
+
+    print(f"{PSNR=:.2f},{SSIM=:.2f},{duration=:.2f}")
 
     out_title = f"out/{name}_F_{frames}_b{block: .2f}_l0_{lambda_0: .2f}_l1_{lambda_1: .2f}_l2_{
         lambda_2: .2f}_l3_{lambda_3: .2f}_r_{rho: .2f}_it_{MAX_IT}"
@@ -82,6 +88,7 @@ if __name__ == "__main__":
     df = pd.DataFrame(crits, columns=columns)
     df["PSNR"] = PSNR
     df["SSIM"] = SSIM
+    df["duration"] = duration
 
     df.to_csv(f"{out_title}.csv")
 
