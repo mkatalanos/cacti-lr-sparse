@@ -12,14 +12,14 @@ from skimage.metrics import peak_signal_noise_ratio
 from numba import njit
 
 
-@njit
+@njit(cache=True)
 def soft_thresh(x, lambda_):
     x = x.astype(np.float64)
     out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
     return out
 
 
-@njit
+@njit(cache=True)
 def bar(x: NDArray) -> NDArray:
     # assert len(x.shape) == 3
     F, M, N = x.shape
@@ -27,7 +27,7 @@ def bar(x: NDArray) -> NDArray:
     return x_bar
 
 
-@njit
+@njit(cache=True)
 def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
     F, M, N = mask.shape
@@ -47,7 +47,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
     return X
 
 
-@njit
+@njit(cache=True)
 def t_svt(Y, tau):
     """
     Tensor Singular Value Thresholding (t-SVT) over the first dimension (axis=0)
@@ -84,7 +84,6 @@ def t_svt(Y, tau):
 
 def update_L_tsvd(
     B, Delta, rho, lambda_2, mask,
-    delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=60
 ):
     """
     Uses T-SVD for background
@@ -98,7 +97,7 @@ def update_L_tsvd(
     return L
 
 
-@njit
+@njit(cache=True)
 def update_L(
     B, Delta, rho, lambda_2, mask,
     delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=60
@@ -138,19 +137,19 @@ def update_L(
     return L
 
 
-@njit
+@njit(cache=True)
 def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
     return S
 
 
-@njit
+@njit(cache=True)
 def update_U(S, Theta, lambda_1, rho):
     U_a = S + Theta / rho
     return soft_thresh(U_a, lambda_1 / rho)
 
 
-@njit
+@njit(cache=True)
 def update_V_B_bar(
     X,
     L,

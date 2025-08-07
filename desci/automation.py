@@ -75,7 +75,7 @@ if __name__ == "__main__":
     end_time = time.time()
 
     PSNR = peak_signal_noise_ratio(x, X, data_range=255)
-    SSIM = structural_similarity(x, X, data_range=255)
+    SSIM = structural_similarity(x, X, data_range=255, channel_axis=0)
     duration = end_time-start_time
 
     print(f"{PSNR=:.2f},{SSIM=:.2f},{duration=:.2f}")
