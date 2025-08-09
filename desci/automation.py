@@ -49,11 +49,15 @@ if __name__ == "__main__":
     mask = generate_mask(x.shape, block)
     y = phi(x, mask)
 
-    # x, mask, y = load_mat("./datasets/drop40_cacti.mat")
-    # name = "DROP"
+    # x, _, _ = load_mat("./datasets/kobe32_cacti.mat")
+    # x = x[:frames]
+    # name = "KOBE"
     # block = 0.5
+    # mask = generate_mask(x.shape, block)
+    # y = phi(x, mask)
 
     F, M, N = mask.shape
+
 
     print(
         f"Running with:, {lambda_0=}, {lambda_1=}, {
@@ -70,7 +74,7 @@ if __name__ == "__main__":
         lambda_2=lambda_2,
         lambda_3=lambda_3,
         MAX_IT=MAX_IT,
-        verbose=False
+        verbose=True
     )
     end_time = time.time()
 
@@ -80,8 +84,8 @@ if __name__ == "__main__":
 
     print(f"{PSNR=:.2f},{SSIM=:.2f},{duration=:.2f}")
 
-    out_title = f"out/{name}_F_{frames}_b{block: .2f}_l0_{lambda_0: .2f}_l1_{lambda_1: .2f}_l2_{
-        lambda_2: .2f}_l3_{lambda_3: .2f}_r_{rho: .2f}_it_{MAX_IT}"
+    out_title = f"out/{name}_F_{frames}_b{block:.2f}_l0_{lambda_0:.2f}_l1_{lambda_1:.2f}_l2_{
+        lambda_2:.2f}_l3_{lambda_3:.2f}_r_{rho:.2f}_it_{MAX_IT}"
 
     columns = ["|Y-H(X)|", "|U|_1", "|L|_*", "|V|_*",
                "|S-U|", "|S-V|", "|X-B-V|", "primal", "dual"]
