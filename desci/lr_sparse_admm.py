@@ -12,14 +12,14 @@ from skimage.metrics import peak_signal_noise_ratio
 from numba import njit
 
 
-@njit(cache=True,fastmath=True)
+@njit(cache=True, fastmath=True)
 def soft_thresh(x, lambda_):
     x = x.astype(np.float64)
     out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
     return out
 
 
-@njit(cache=True,fastmath=True)
+@njit(cache=True, fastmath=True)
 def bar(x: NDArray) -> NDArray:
     # assert len(x.shape) == 3
     F, M, N = x.shape
@@ -27,7 +27,7 @@ def bar(x: NDArray) -> NDArray:
     return x_bar
 
 
-@njit(cache=True,fastmath=True)
+@njit(cache=True, fastmath=True)
 def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 
     F, M, N = mask.shape
@@ -44,10 +44,10 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
     C6 = np.multiply(mask, C5[np.newaxis, :, :])
 
     X = (C3-C6*lambda_0/rho)*lambda_0/rho
-    return X
+    return X.clip(0, 255)
 
 
-@njit(cache=True,fastmath=True)
+@njit(cache=True, fastmath=True)
 def t_svt(Y, tau):
     """
     Tensor Singular Value Thresholding (t-SVT) over the first dimension (axis=0)
@@ -97,11 +97,8 @@ def update_L_tsvd(
     return L
 
 
-@njit(cache=True,fastmath=True)
-def update_L(
-    B, Delta, rho, lambda_2, mask,
-    delta=1e-3, epsilon=1e-3, max_it=1000, svd_l=60
-):
+@njit(cache=True, fastmath=True)
+def update_L(B, Delta, rho, lambda_2, mask):
     """
     L <- B
     """
@@ -109,47 +106,26 @@ def update_L(
     La = B + Delta / rho
     La_bar = La.reshape(F, M * N)
     u, s, vh = np.linalg.svd(La_bar, full_matrices=False)
-    # u, s, vh = randomized_svd(La_bar, svd_l)
-    # La_tilde, patch_locations = extract_sparse_patches(La, 32, 8)
-    # u, s, vh = np.linalg.svd(La_tilde, full_matrices=False)
 
-    """ Trying without weighting
-
-    # s is array of components
-    dold = s.copy()
-
-    # TODO: JM: I would be interested to know how many iterations this takes on
-    # average
-    for t in range(max_it):
-        d = s - (lambda_2 / rho) * (1 / (dold + epsilon))
-        d = np.maximum(d, 0)
-        dold = d
-        if np.abs(d - dold).max() <= delta:
-            break
-
-    """
     d = soft_thresh(s, lambda_2/rho)
     L_bar = u @ np.diag(d) @ vh
-    # L_bar = u[:, :1] @ np.diag(d[:1]) @ vh[:1, :]
     L = L_bar.reshape(F, M, N)
-    # L_tilde = u @ np.diag(d) @ vh
-    # L = reconstruct_sparse_patches(L_tilde, patch_locations, La.shape)
     return L
 
 
-@njit(cache=True,fastmath=True)
+@njit(cache=True, fastmath=True)
 def update_S(U, V, Theta, Gamma, rho):
     S = (U+V-(Theta+Gamma)/rho)/2
     return S
 
 
-@njit(cache=True,fastmath=True)
+@njit(cache=True, fastmath=True)
 def update_U(S, Theta, lambda_1, rho):
     U_a = S + Theta / rho
     return soft_thresh(U_a, lambda_1 / rho)
 
 
-@njit(cache=True,fastmath=True)
+@njit(cache=True, fastmath=True)
 def update_V_B_bar(
     X,
     L,
@@ -159,11 +135,6 @@ def update_V_B_bar(
     Delta,
     rho,
     lambda_3,
-    max_it=50,
-    epsilon=1e-3,
-    delta=1e-3,
-    svd_l=50,
-    patch_size=8,
 ):
 
     F, M, N = X.shape
@@ -173,17 +144,6 @@ def update_V_B_bar(
     Va_bar = bar(Va)
     u, s, vh = np.linalg.svd(Va_bar, full_matrices=False)
 
-    """ Testing without weighing
-    # s is array of components
-    dold = s.copy()
-
-    for t in range(max_it):
-        d = s - ((2*lambda_3)/(3*rho)) * (1 / (dold + epsilon))
-        d = d.clip(0)
-        dold = d
-        if np.abs(d - dold).max() <= delta:
-            break
-"""
     d = soft_thresh(s, 2*lambda_3/(rho*3))
     V_tilde = u @ np.diag(d) @ vh
     V = V_tilde.reshape(F, M, N)
@@ -191,7 +151,7 @@ def update_V_B_bar(
     return V, B
 
 
-@njit(cache=True,fastmath=True)
+@njit(cache=True, fastmath=True)
 def update_V_B(
     X,
     L,
@@ -201,47 +161,38 @@ def update_V_B(
     Delta,
     rho,
     lambda_3,
-    max_it=50,
-    epsilon=1e-3,
-    delta=1e-3,
-    svd_l=50,
     patch_size=16,
+    stride_ratio=4
 ):
 
     F, M, N = X.shape
 
     Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
     Va_tilde, patch_locations = extract_sparse_patches(
-        Va, patch_size, stride_ratio=4)
-
-    # u, s, vh = randomized_svd(Va_tilde, svd_l)
+        Va, patch_size, stride_ratio=stride_ratio)
     u, s, vh = np.linalg.svd(Va_tilde, full_matrices=False)
-
-    # Va_bar = bar(Va)
-    # u, s, vh = np.linalg.svd(Va_bar, full_matrices=False)
-
-    """ Testing without weighing
-    # s is array of components
-    dold = s.copy()
-
-    for t in range(max_it):
-        d = s - ((2*lambda_3)/(3*rho)) * (1 / (dold + epsilon))
-        d = d.clip(0)
-        dold = d
-        if np.abs(d - dold).max() <= delta:
-            break
-"""
     d = soft_thresh(s, 2*lambda_3/(rho*3))
     V_tilde = u @ np.diag(d) @ vh
-    # V = t_svt(Va, 2*lambda_3/(rho*3))
     V = reconstruct_sparse_patches(V_tilde, patch_locations, S.shape)
-    # V = V_tilde.reshape(F, M, N)
     B = (L + X - V + (Lambda - Delta) / rho) / 2
     return V, B
 
 
 def ADMM(
-        y, mask, rho=0.8, lambda_0=0.5, lambda_1=0.5, lambda_2=0.5, lambda_3=0.5, MAX_IT=3, mu=10, tau=2, verbose=True):
+        y,
+        mask,
+        rho=1,
+        lambda_0=0.5,
+        lambda_1=0.5,
+        lambda_2=0.5,
+        lambda_3=0.5,
+        patch_size=16,
+        stride_ratio=4,
+        MAX_IT=3,
+        mu=10,
+        tau=2,
+        verbose=True
+):
     F, M, N = mask.shape
 
     # Init
@@ -280,7 +231,8 @@ def ADMM(
 
             # Can be done in parallel
             U = update_U(S, Theta, lambda_1, rho)
-            V, B = update_V_B(X, L, S, Gamma, Lambda, Delta, rho, lambda_3)
+            V, B = update_V_B(X, L, S, Gamma, Lambda, Delta, rho, lambda_3,
+                              patch_size=patch_size, stride_ratio=stride_ratio)
 
             # Wait here if parallelizing
 
@@ -297,8 +249,8 @@ def ADMM(
                  X - B - V]
             )
             dual_res = -rho * np.array(
-                [V-V_old+B-B_old,
-                 U-U_old+V-V_old,
+                [V - V_old + B - B_old,
+                 U - U_old + V - V_old,
                  B - B_old]
             )
 
@@ -314,7 +266,7 @@ def ADMM(
             else:
                 rho = rho
 
-            if rho<1e-3:
+            if rho < 1e-3:
                 if verbose:
                     print(f"{rho=:.2e} has become too small")
                 break
@@ -381,14 +333,14 @@ def ADMM(
 
 
 if __name__ == "__main__":
-    F = 50
+    F = 8
     START_FRAME = 30
     x = load_video(
         "./datasets/video/casia_angleview_p01_jump_a1.mp4")[
         START_FRAME:START_FRAME+F,
         :, :
     ]
-    mask = generate_mask(x.shape, 0.2)
+    mask = generate_mask(x.shape, 0.5)
     y = phi(x, mask)
 
     # x, mask, y = load_mat("./datasets/drop40_cacti.mat")
@@ -401,10 +353,14 @@ if __name__ == "__main__":
     # lambda_3 = 0.5
 
     lambda_0 = 1
-    lambda_1 = 3e-2
-    lambda_2 = 10
-    lambda_3 = 1e-1
-    rho = 1e-2
+    lambda_1 = 0.01
+    lambda_2 = 50
+    lambda_3 = 50
+
+    patch_size = 16
+    stride_ratio = 0
+
+    rho = 1
 
     X, S, L, U, V, B, crits = ADMM(
         y,
@@ -414,9 +370,12 @@ if __name__ == "__main__":
         lambda_1=lambda_1,
         lambda_2=lambda_2,
         lambda_3=lambda_3,
+        patch_size=patch_size,
+        stride_ratio=stride_ratio,
         MAX_IT=500,
         verbose=False
     )
+
     psnr = peak_signal_noise_ratio(x, X, data_range=255)
     print(f"PSNR:", psnr)
     visualize_cube(X)

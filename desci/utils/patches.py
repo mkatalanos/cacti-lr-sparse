@@ -9,7 +9,7 @@ from tqdm import tqdm
 import numpy as np
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def extract_sparse_patches(
     X: NDArray[np.uint8], patch_size: int, stride_ratio: int = 1
 ):
@@ -78,7 +78,7 @@ def extract_patches(X: NDArray[np.uint8], patch_size: int) -> NDArray[np.uint8]:
     return X_tilde
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def reconstruct_sparse_patches(
     X_tilde, locations: List[Tuple[int, int, int]], shape: Tuple[int, int, int]
 ):

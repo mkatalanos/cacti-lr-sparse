@@ -20,6 +20,8 @@ def process_args():
     parser.add_argument("-f", "--frames", type=int, default=8)
     parser.add_argument("-b", "--block", type=float, default=0.5)
     parser.add_argument("-i", "--iterations", type=int, default=500)
+    parser.add_argument("-p", "--patch_size", type=int, default=16)
+    parser.add_argument("-s", "--stride_ratio", type=int, default=4)
     args = parser.parse_args()
     return args
 
@@ -35,6 +37,8 @@ if __name__ == "__main__":
     frames = args.frames
     block = args.block
     rho = args.rho
+    patch_size = args.patch_size
+    stride_ratio = args.stride_ratio
     MAX_IT = args.iterations
 
     assert block < 1
@@ -58,7 +62,6 @@ if __name__ == "__main__":
 
     F, M, N = mask.shape
 
-
     print(
         f"Running with:, {lambda_0=}, {lambda_1=}, {
             lambda_2=}, {lambda_3=}, {frames=}, {rho=}, {block=}, {MAX_IT=}"
@@ -73,9 +76,12 @@ if __name__ == "__main__":
         lambda_1=lambda_1,
         lambda_2=lambda_2,
         lambda_3=lambda_3,
+        patch_size=patch_size,
+        stride_ratio=stride_ratio,
         MAX_IT=MAX_IT,
         verbose=True
     )
+    X = X.clip(0, 255)
     end_time = time.time()
 
     PSNR = peak_signal_noise_ratio(x, X, data_range=255)
