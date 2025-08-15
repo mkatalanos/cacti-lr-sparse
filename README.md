@@ -69,7 +69,8 @@ using params.txt. You can tweak to manually add extra flags. Uses the
 `lowpriority` queue to run for free on Cirrus.
 
 `params.txt`: The file from which parameters are read from for grid searches.
-You can easily generate that through a list comprehension.
+You can easily generate that through a list comprehension. Configure based on
+help from `automation.py`
 
 
 ## Matlab-eval
