@@ -19,5 +19,4 @@ __pycache__/
 virt_env/
 *.py[cod]
 numba_cache/
-out/
 lightning_logs/

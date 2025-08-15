@@ -61,8 +61,8 @@ report.
 `rpca_plus_datafidelity.py`: This file includes the code for an experiment only
 mentioned in the future work part of the report, where a robust PCA + data
 fidelity term problem was solved with ADMM. When tweaking lamb0,lamb1,lamb2 it
-can achieve very similar reconstruction performance, even faster than our main
-method.
+can achieve very similar reconstruction performance, sometimes even faster than
+our main method.
 
 `run_lowpriority.sh`: Makes use of SLURM job arrays to perform a grid search
 using params.txt. You can tweak to manually add extra flags. Uses the
