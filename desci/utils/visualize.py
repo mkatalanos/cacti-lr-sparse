@@ -6,26 +6,28 @@ def write_cube(img, fpath):
     if len(img.shape) != 3:
         img = img[:, np.newaxis]
     assert len(img.shape) == 3
+    img = img.transpose(1, 2, 0)
 
     H, W, F = img.shape
     side_by_side = np.zeros((H, W * F), dtype=np.uint8)
 
     for i in range(F):
-        side_by_side[:, i * W : (i + 1) * W] = img[:, :, i]
+        side_by_side[:, i * W: (i + 1) * W] = img[:, :, i]
 
     Image.fromarray(side_by_side).save(fpath)
 
 
 def visualize_cube(img):
     if len(img.shape) != 3:
-        img = img[:, np.newaxis]
+        img = img[np.newaxis, :]
     assert len(img.shape) == 3
+    img = img.transpose(1, 2, 0)
 
     H, W, F = img.shape
     side_by_side = np.zeros((H, W * F), dtype=np.uint8)
 
     for i in range(F):
-        side_by_side[:, i * W : (i + 1) * W] = img[:, :, i]
+        side_by_side[:, i * W: (i + 1) * W] = img[:, :, i]
 
     Image.fromarray(side_by_side).show()
 
@@ -54,5 +56,5 @@ def visualize_clusters(clusters):
         patches = cluster.reshape(p, p, -1)[:, :, :T]
         for col in range(T):
             patch = patches[:, :, col]
-            X[row * p : (row + 1) * p, col * p : (col + 1) * p] = patch
+            X[row * p: (row + 1) * p, col * p: (col + 1) * p] = patch
     Image.fromarray(X).show()
