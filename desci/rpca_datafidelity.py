@@ -8,6 +8,12 @@ import time
 
 @njit(cache=True, fastmath=True)
 def singular_value_thresholding(X, tau):
+    """
+    Singular value thresholding
+    Args:
+        X: NDArray
+        tau: float, thresholding parameter
+    """
     U, S, Vt = np.linalg.svd(X, full_matrices=False)
     S_thresh = np.maximum(S - tau, 0)
     return U @ np.diag(S_thresh) @ Vt
@@ -17,6 +23,7 @@ def singular_value_thresholding(X, tau):
 def t_svt(Y, tau):
     """
     Tensor singular value thresholding along the 1st dimension (axis=0)
+    Alg 3 from https://arxiv.org/pdf/1804.03728
     Args:
         Y: NDArray
         tau: float, thresholding parameter
@@ -30,32 +37,39 @@ def t_svt(Y, tau):
     W_fft = np.zeros_like(Y_fft, dtype=np.complex128)
     halfn1 = int(np.ceil((n1 + 1) / 2))
 
-    # Step 2: Matrix SVT on each lateral slice (fix i, vary j,k)
+    # Step 2: Matrix SVT on each slice of Y_fft
     for i in range(halfn1):
         U, S, Vh = np.linalg.svd(Y_fft[i, :, :], full_matrices=False)
         S_thresh = np.maximum(S - tau, 0)
         W_fft[i, :, :] = (U * S_thresh) @ Vh
 
-    # Fill the remaining slices using conjugate symmetry
+    # Fill remaining slices using conjugate symmetry
     for i in range(halfn1, n1):
         W_fft[i, :, :] = np.conj(W_fft[n1 - i, :, :])
 
     # Step 3: Inverse FFT along the 1st dimension (axis=0)
-    # Take real part if input is real
     D_tau_Y = np.fft.ifft(W_fft, axis=0).real
 
     return D_tau_Y
 
 
 @njit(cache=True, fastmath=True)
-def soft_thresholding(X, tau):
-    return np.sign(X) * np.maximum(np.abs(X) - tau, 0)
+def soft_thresholding(x, lambda_):
+    """
+    Soft thresholding operator
+    Args:
+        x: NDArray
+        lambda_: float, thresholding parameter
+    """
+    x = x.astype(np.float64)
+    out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
+    return out
 
 
 @njit(cache=True, fastmath=True)
 def update_B(X, S, Lambda, lamb1, rho):
     Ba = (X-S+Lambda/rho)
-    Ba = np.ascontiguousarray(Ba)
+    Ba = np.ascontiguousarray(Ba)  # Needed by Numba
     return t_svt(Ba, lamb1/(2*rho))
 
 

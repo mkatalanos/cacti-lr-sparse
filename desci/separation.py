@@ -67,11 +67,11 @@ def rpca_admm(
     return L, S, rho
 
 
-
 @njit(cache=True, fastmath=True)
 def t_svt(Y, tau):
     """
     Tensor singular value thresholding along the 1st dimension (axis=0)
+    Alg 3 from https://arxiv.org/pdf/1804.03728
     Args:
         Y: NDArray
         tau: float, thresholding parameter
@@ -85,18 +85,17 @@ def t_svt(Y, tau):
     W_fft = np.zeros_like(Y_fft, dtype=np.complex128)
     halfn1 = int(np.ceil((n1 + 1) / 2))
 
-    # Step 2: Matrix SVT on each lateral slice (fix i, vary j,k)
+    # Step 2: Matrix SVT on each slice of Y_fft
     for i in range(halfn1):
         U, S, Vh = np.linalg.svd(Y_fft[i, :, :], full_matrices=False)
         S_thresh = np.maximum(S - tau, 0)
         W_fft[i, :, :] = (U * S_thresh) @ Vh
 
-    # Fill the remaining slices using conjugate symmetry
+    # Fill remaining slices using conjugate symmetry
     for i in range(halfn1, n1):
         W_fft[i, :, :] = np.conj(W_fft[n1 - i, :, :])
 
     # Step 3: Inverse FFT along the 1st dimension (axis=0)
-    # Take real part if input is real
     D_tau_Y = np.fft.ifft(W_fft, axis=0).real
 
     return D_tau_Y

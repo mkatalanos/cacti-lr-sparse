@@ -14,6 +14,12 @@ from numba import njit
 
 @njit(cache=True, fastmath=True)
 def soft_thresh(x, lambda_):
+    """
+    Soft thresholding operator
+    Args:
+        x: NDArray
+        lambda_: float, thresholding parameter
+    """
     x = x.astype(np.float64)
     out = np.sign(x) * np.maximum(np.abs(x) - lambda_, 0)
     return out
@@ -21,6 +27,9 @@ def soft_thresh(x, lambda_):
 
 @njit(cache=True, fastmath=True)
 def bar(x: NDArray) -> NDArray:
+    """
+    Convenience function for readability, just reshapes from F x M x N to F x MN
+    """
     # assert len(x.shape) == 3
     F, M, N = x.shape
     x_bar = x.reshape(F, M * N)
@@ -51,6 +60,7 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 def t_svt(Y, tau):
     """
     Tensor singular value thresholding along the 1st dimension (axis=0)
+    Alg 3 from https://arxiv.org/pdf/1804.03728
     Args:
         Y: NDArray
         tau: float, thresholding parameter
@@ -64,18 +74,17 @@ def t_svt(Y, tau):
     W_fft = np.zeros_like(Y_fft, dtype=np.complex128)
     halfn1 = int(np.ceil((n1 + 1) / 2))
 
-    # Step 2: Matrix SVT on each lateral slice (fix i, vary j,k)
+    # Step 2: Matrix SVT on each slice of Y_fft
     for i in range(halfn1):
         U, S, Vh = np.linalg.svd(Y_fft[i, :, :], full_matrices=False)
         S_thresh = np.maximum(S - tau, 0)
         W_fft[i, :, :] = (U * S_thresh) @ Vh
 
-    # Fill the remaining slices using conjugate symmetry
+    # Fill remaining slices using conjugate symmetry
     for i in range(halfn1, n1):
         W_fft[i, :, :] = np.conj(W_fft[n1 - i, :, :])
 
     # Step 3: Inverse FFT along the 1st dimension (axis=0)
-    # Take real part if input is real
     D_tau_Y = np.fft.ifft(W_fft, axis=0).real
 
     return D_tau_Y
@@ -99,6 +108,9 @@ def update_L_tsvd(
 
 @njit(cache=True, fastmath=True)
 def update_L(B, Delta, rho, lambda_2, mask):
+    """
+    Original update for L using NNM
+    """
     F, M, N = mask.shape
     La = B + Delta / rho
     La_bar = La.reshape(F, M * N)
@@ -133,7 +145,10 @@ def update_V_B_bar(
     rho,
     lambda_3,
 ):
-
+    """
+    Alternative update for the foreground V that only uses NNM instead of patches.
+    Was used for testing not mentioned in the report, and is not used anymore.
+    """
     F, M, N = X.shape
 
     Va = (X-L+2*S+(Delta+Lambda+2*Gamma)/rho)/3
