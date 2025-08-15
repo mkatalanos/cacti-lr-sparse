@@ -134,149 +134,149 @@ mdframed={
 Let $X \in \mathbb{R}^{M\times N \times F}$ be a video sequence, of which
 we observe
 \begin{align}
-  \label{eq:measurement}
-  Y = \mathcal{H}(X)\,,
+	\label{eq:measurement}
+	Y = \mathcal{H}(X)\,,
 \end{align}
 where $\mathcal{H}\,:\, \mathbb{R}^{M \times N \times F} \to \mathbb{R}^{M
-\times Q}$ is a linear operator that models snapshot compressive imaging. When
+		\times Q}$ is a linear operator that models snapshot compressive imaging. When
 $Q = N$, we obtain the traditional setup of
 CACTI~\cite{Llull13-CodedApertureCompressiveTemporalImaging}. When $Q = N + F
--1$, we obtain the one-pixel (horizontal) shift scenario
-of~\cite{Matin21-CompressiveCodedRotatingMirrorCameraForHighSpeedImaging}. 
+	-1$, we obtain the one-pixel (horizontal) shift scenario
+of~\cite{Matin21-CompressiveCodedRotatingMirrorCameraForHighSpeedImaging}.
 
 \begin{Assumption}
-  $X \in \mathbb{R}^{M \times N\times F}$ can be decomposed as
-  \begin{align}
-    \label{eq:assumptionlowrankplussparse}
-    X = B + S\,,
-  \end{align}
-  where 
-  \begin{itemize}
-    \item $B \in \mathbb{R}^{M\times N\times F}$ represents a
-      \textit{low-rank} background, in the sense that the matrix
-      $\overline{B} \in \mathbb{R}^{MN \times F}$ is low-rank. Each column $f$
-      of $\overline{B}$ is obtained by vectorizing the $f$th frame of
-      $B$: $\overline{B}_{:, f} = \text{vec}(B_{:, :, f})$, for $f
-      = 1,\ldots, F$.
+	$X \in \mathbb{R}^{M \times N\times F}$ can be decomposed as
+	\begin{align}
+		\label{eq:assumptionlowrankplussparse}
+		X = B + S\,,
+	\end{align}
+	where
+	\begin{itemize}
+		\item $B \in \mathbb{R}^{M\times N\times F}$ represents a
+		      \textit{low-rank} background, in the sense that the matrix
+		      $\overline{B} \in \mathbb{R}^{MN \times F}$ is low-rank. Each column $f$
+		      of $\overline{B}$ is obtained by vectorizing the $f$th frame of
+		      $B$: $\overline{B}_{:, f} = \text{vec}(B_{:, :, f})$, for $f
+			      = 1,\ldots, F$.
 
-    \item $S \in \mathbb{R}^{M\times N\times F}$ represents a sparse
-    foreground, satisfying patch similarity. That is, many of the entries of
-    $S$ are zero, and the matrix $\widetilde{S} \in \mathbb{R}^{P
-    \times L}$ is low-rank. The $L$ columns of the matrix $\widetilde{S}$ are obtained by
-    vectorizing $L$ patches of size $\sqrt{P}\times \sqrt{P}$ from the frames
-    $S_f$, $f = 1, \ldots, F$. 
-  \end{itemize}
+		\item $S \in \mathbb{R}^{M\times N\times F}$ represents a sparse
+		      foreground, satisfying patch similarity. That is, many of the entries of
+		      $S$ are zero, and the matrix $\widetilde{S} \in \mathbb{R}^{P
+				      \times L}$ is low-rank. The $L$ columns of the matrix $\widetilde{S}$ are obtained by
+		      vectorizing $L$ patches of size $\sqrt{P}\times \sqrt{P}$ from the frames
+		      $S_f$, $f = 1, \ldots, F$.
+	\end{itemize}
 \end{Assumption}
 
 Notice that because $S$ is sparse, the matrix $\widetilde{S}$ only needs to
 contain patches whose pixels are nonzero. This will reduce the number of
 patches $L$. Throughout, given a 3D tensor $M \in \mathbb{R}^{d_1 \times d_2
-\times d_{3}}$, the notation $\overline{M} \in \mathbb{R}^{d_1 d_2 \times d_3}$
+	\times d_{3}}$, the notation $\overline{M} \in \mathbb{R}^{d_1 d_2 \times d_3}$
 represents the matrix whose columns are obtained by vectorizing each slice
 $M_{:, :, i}$, along the third dimension of $M$. And $\widetilde{M} \in
-\mathbb{R}^{P \times L}$ refers to the matrix obtained by extracting $L$
+	\mathbb{R}^{P \times L}$ refers to the matrix obtained by extracting $L$
 patches for size $\sqrt{P} \times \sqrt{P}$ from slices of $M_{:, :, i}$, for
-any $i$, and vectorizing them into the columns of $\widetilde{M}$. 
+any $i$, and vectorizing them into the columns of $\widetilde{M}$.
 
 \mypar{Optimization problem}
 Given the above assumption, we can formulate the reconstruction problem as
 \begin{align}
-  \label{eq:prob}
-  \underset{B, S}{\text{minimize}}\,\,\,
-  \frac{\lambda_0}{2}
-  \big\|Y - \mathcal{H}(B + S)\big\|_F^2
-  +
-  \lambda_1 \big\|S\big\|_1
-  +
-  \lambda_2 \big\|\overline{B}\big\|_{\star}
-  +
-  \lambda_3 \big\|\widetilde{S}\big\|_{\star}\,,
+	\label{eq:prob}
+	\underset{B, S}{\text{minimize}}\,\,\,
+	\frac{\lambda_0}{2}
+	\big\|Y - \mathcal{H}(B + S)\big\|_F^2
+	+
+	\lambda_1 \big\|S\big\|_1
+	+
+	\lambda_2 \big\|\overline{B}\big\|_{\star}
+	+
+	\lambda_3 \big\|\widetilde{S}\big\|_{\star}\,,
 \end{align}
-where 
+where
 \begin{itemize}
-  \item $\|\cdot\|_F$ is the Frobenius norm. It is the sum of squared entries,
-    whether applied to a matrix or a tensor.
+	\item $\|\cdot\|_F$ is the Frobenius norm. It is the sum of squared entries,
+	      whether applied to a matrix or a tensor.
 
-  \item $\|\cdot\|_1$ is the $\ell_1$-norm (sum of absolute values). When
-    applied to a matrix or tensor, it is the same as the $\ell_1$-norm applied
-    to their vectorization.
+	\item $\|\cdot\|_1$ is the $\ell_1$-norm (sum of absolute values). When
+	      applied to a matrix or tensor, it is the same as the $\ell_1$-norm applied
+	      to their vectorization.
 
-  \item $\|\cdot\|_{\star}$ is the nuclear-norm (Schatten $1$-norm), which is
-    the $\ell_1$-norm applied to the singular values of the matrix.
+	\item $\|\cdot\|_{\star}$ is the nuclear-norm (Schatten $1$-norm), which is
+	      the $\ell_1$-norm applied to the singular values of the matrix.
 
-  \item $\lambda_0, \lambda_1, \lambda_2, \lambda_3 \geq 0$ are nonnegative
-    hyperparameters.
+	\item $\lambda_0, \lambda_1, \lambda_2, \lambda_3 \geq 0$ are nonnegative
+	      hyperparameters.
 \end{itemize}
 
-\section{Applying ADMM} 
+\section{Applying ADMM}
 
 To apply ADMM to~\eqref{eq:prob}, we need to rewrite it in a way that the
-variables become decoupled. To do so, we introduce two copies of 
-$S$, denoted $U$ and $V$, and one copy of $B$, denoted $L$. 
+variables become decoupled. To do so, we introduce two copies of
+$S$, denoted $U$ and $V$, and one copy of $B$, denoted $L$.
 Problem~\eqref{eq:prob} is thus equivalent to
 \begin{align}
-  \label{eq:reformulation}
-  \begin{array}[t]{cl}
-    \underset{X, S, U, V, B, L}{\text{minimize}}
-    &
-    \frac{\lambda_0}{2}
-    \big\|Y - \mathcal{H}(X)\big\|_F^2
-    +
-    \lambda_1 \big\|U\big\|_1
-    +
-    \lambda_2 \big\|\overline{L}\big\|_{\star}
-    +
-    \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-    \\
-    \text{subject to}
-    &
-    S = U
-    \\
-    & S = V
-    \\
-    & 
-    B = L
-    \\
-    & X = B + V\,.
-  \end{array}
+	\label{eq:reformulation}
+	\begin{array}[t]{cl}
+		\underset{X, S, U, V, B, L}{\text{minimize}}
+		 &
+		\frac{\lambda_0}{2}
+		\big\|Y - \mathcal{H}(X)\big\|_F^2
+		+
+		\lambda_1 \big\|U\big\|_1
+		+
+		\lambda_2 \big\|\overline{L}\big\|_{\star}
+		+
+		\lambda_3 \big\|\widetilde{V}\big\|_{\star}
+		\\
+		\text{subject to}
+		 &
+		S = U
+		\\
+		 & S = V
+		\\
+		 &
+		B = L
+		\\
+		 & X = B + V\,.
+	\end{array}
 \end{align}
 The augmented Lagrangian of~\eqref{eq:reformulation} is
 \begin{multline*}
-  L_{\rho}(X, S, U, V, B, L\, ;\, \Theta, \Gamma, \Delta, \Lambda) 
-  = 
-  \frac{\lambda_0}{2}
-  \big\|Y - \mathcal{H}(X)\big\|_F^2
-  +
-  \lambda_1 \big\|U\big\|_1
-  +
-  \lambda_2 \big\|\overline{L}\big\|_{\star}
-  +
-  \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-  \\
-  +
-  \langle\Theta, S - U\rangle
-  +
-  \langle\Gamma, S - V\rangle
-  +
-  \langle\Delta, B - L\rangle
-  +
-  \langle\Lambda, X - B - V\rangle
-  +
-  \frac{\rho}{2}
-  \|S - U\|_{F}^2
-  +
-  \frac{\rho}{2}
-  \|S - V\|_{F}^2
-  +
-  \frac{\rho}{2}
-  \|B - L\|_{F}^2
-  \\
-  +
-  \frac{\rho}{2}
-  \|X - B - V\|_{F}^2\,,
+	L_{\rho}(X, S, U, V, B, L\, ;\, \Theta, \Gamma, \Delta, \Lambda)
+	=
+	\frac{\lambda_0}{2}
+	\big\|Y - \mathcal{H}(X)\big\|_F^2
+	+
+	\lambda_1 \big\|U\big\|_1
+	+
+	\lambda_2 \big\|\overline{L}\big\|_{\star}
+	+
+	\lambda_3 \big\|\widetilde{V}\big\|_{\star}
+	\\
+	+
+	\langle\Theta, S - U\rangle
+	+
+	\langle\Gamma, S - V\rangle
+	+
+	\langle\Delta, B - L\rangle
+	+
+	\langle\Lambda, X - B - V\rangle
+	+
+	\frac{\rho}{2}
+	\|S - U\|_{F}^2
+	+
+	\frac{\rho}{2}
+	\|S - V\|_{F}^2
+	+
+	\frac{\rho}{2}
+	\|B - L\|_{F}^2
+	\\
+	+
+	\frac{\rho}{2}
+	\|X - B - V\|_{F}^2\,,
 \end{multline*}
 where we associated the dual variables $\Theta, \Gamma, \Delta, \Lambda\in
-\mathbb{R}^{M\times N\times F}$ with the 1st, 2nd, 3rd, and 4th constraints
+	\mathbb{R}^{M\times N\times F}$ with the 1st, 2nd, 3rd, and 4th constraints
 of~\eqref{eq:reformulation}.
 
 We group the primal variables into $(X, S, L)$ and $(U, V, B)$. ADMM iteratively
@@ -285,103 +285,103 @@ variables fixed at the new value, minimizes $L_\rho$ w.r.t.\ the second set of
 variables. Finally, it updates all the Lagrange multipliers.
 
 More concretely, starting with arbitrary $\big(U^0, V^0, B^0\big)$ and
-$\big(\Theta^0, \Gamma^0, \Delta^0, \Lambda^0\big)$, ADMM iterates for $k = 0, 1, \ldots$, 
+$\big(\Theta^0, \Gamma^0, \Delta^0, \Lambda^0\big)$, ADMM iterates for $k = 0, 1, \ldots$,
 \begin{subequations}
-  \label{eq:admm_applied}
-  \begin{align}
-    (X^{k+1}, S^{k+1}, L^{k+1})
-      &=
-      \underset{X, S, L}{\arg\min}\,\,\,
-      \bigg[
-      \frac{\lambda_0}{2}
-      \big\|Y - \mathcal{H}(X)\big\|_F^2
-      +
-      \langle\Lambda^k, X - B^k - V^k\rangle
-      +
-      \frac{\rho}{2}
-      \|X - B^k - V^k\|_{F}^2
-      \bigg]
-      \notag
-      \\
-      &\qquad
-      +
-      \bigg[
-        \langle\Theta^k, S - U^k\rangle
-        +
-        \langle\Gamma^k, S - V^k\rangle
-        +
-        \frac{\rho}{2}
-        \|S - U^k\|_{F}^2
-        +
-        \frac{\rho}{2}
-        \|S - V^k\|_{F}^2
-      \bigg]
-      \notag
-      \\
-      &\qquad
-      +
-      \bigg[
-        \lambda_2 \big\|\overline{L}\big\|_{\star}
-        +
-        \langle\Delta^k,B^k - L\rangle
-        +
-        \frac{\rho}{2}
-        \|B^k - L\|_{F}^2
-      \bigg]
-      \label{eq:admm_applied_sl}
-      \\
-      (U^{k+1}, V^{k+1}, B^{k+1})
-      &=
-      \underset{U, V, B}{\arg\min}\,\,\,
-      \bigg[
-        \lambda_1 \big\|U\big\|_1
-        +
-        \langle\Theta^k, S^{k+1} - U\rangle
-        +
-        \frac{\rho}{2}
-        \|S^{k+1} - U\|_{F}^2
-      \bigg]
-      \notag
-      \\
-      &\qquad
-      +
-      \bigg[
-        \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-        +
-        \langle\Gamma^k, S^{k+1} - V\rangle
-        +
-        \langle\Delta^k, B - L^{k+1}\rangle
-        +
-        \langle\Lambda^k, X^{k+1} - B - V\rangle
-        \notag
-        \\
-      &\qquad
-        +
-        \frac{\rho}{2}
-        \|S^{k+1} - V\|_{F}^2
-        +
-        \frac{\rho}{2}
-        \|B - L^{k+1}\|_{F}^2
-        +
-        \frac{\rho}{2}
-        \|X^{k+1} - B - V\|_{F}^2
-      \bigg]
-        \notag
-        \\
-      \label{eq:admm_applied_uvb}
-      \\
-      \Theta^{k+1} &= \Theta^k +  \rho(S^{k+1} - U^{k+1})
-      \label{eq:admm_applied_lagrangetheta}
-      \\
-      \Gamma^{k+1} &= \Gamma^k +  \rho(S^{k+1} - V^{k+1})
-      \label{eq:admm_applied_lagrangegamma}
-      \\
-      \Delta^{k+1} &= \Delta^k + \rho(B^{k+1} - L^{k+1})\,.
-      \label{eq:admm_applied_lagrangedelta}
-      \\
-      \Lambda^{k+1} &= \Lambda^k + \rho(X^{k+1} - B^{k+1} - V^{k+1})\,.
-      \label{eq:admm_applied_lagrangelambda}
-  \end{align}
+	\label{eq:admm_applied}
+	\begin{align}
+		(X^{k+1}, S^{k+1}, L^{k+1})
+		              & =
+		\underset{X, S, L}{\arg\min}\,\,\,
+		\bigg[
+		\frac{\lambda_0}{2}
+		\big\|Y - \mathcal{H}(X)\big\|_F^2
+		+
+		\langle\Lambda^k, X - B^k - V^k\rangle
+		+
+		\frac{\rho}{2}
+		\|X - B^k - V^k\|_{F}^2
+		\bigg]
+		\notag
+		\\
+		              & \qquad
+		+
+		\bigg[
+		\langle\Theta^k, S - U^k\rangle
+		+
+		\langle\Gamma^k, S - V^k\rangle
+		+
+		\frac{\rho}{2}
+		\|S - U^k\|_{F}^2
+		+
+		\frac{\rho}{2}
+		\|S - V^k\|_{F}^2
+		\bigg]
+		\notag
+		\\
+		              & \qquad
+		+
+		\bigg[
+		\lambda_2 \big\|\overline{L}\big\|_{\star}
+		+
+		\langle\Delta^k,B^k - L\rangle
+		+
+		\frac{\rho}{2}
+		\|B^k - L\|_{F}^2
+		\bigg]
+		\label{eq:admm_applied_sl}
+		\\
+		(U^{k+1}, V^{k+1}, B^{k+1})
+		              & =
+		\underset{U, V, B}{\arg\min}\,\,\,
+		\bigg[
+		\lambda_1 \big\|U\big\|_1
+		+
+		\langle\Theta^k, S^{k+1} - U\rangle
+		+
+		\frac{\rho}{2}
+		\|S^{k+1} - U\|_{F}^2
+		\bigg]
+		\notag
+		\\
+		              & \qquad
+		+
+		\bigg[
+		\lambda_3 \big\|\widetilde{V}\big\|_{\star}
+		+
+		\langle\Gamma^k, S^{k+1} - V\rangle
+		+
+		\langle\Delta^k, B - L^{k+1}\rangle
+		+
+		\langle\Lambda^k, X^{k+1} - B - V\rangle
+		\notag
+		\\
+		              & \qquad
+		+
+		\frac{\rho}{2}
+		\|S^{k+1} - V\|_{F}^2
+		+
+		\frac{\rho}{2}
+		\|B - L^{k+1}\|_{F}^2
+		+
+		\frac{\rho}{2}
+		\|X^{k+1} - B - V\|_{F}^2
+		\bigg]
+		\notag
+		\\
+		\label{eq:admm_applied_uvb}
+		\\
+		\Theta^{k+1}  & = \Theta^k +  \rho(S^{k+1} - U^{k+1})
+		\label{eq:admm_applied_lagrangetheta}
+		\\
+		\Gamma^{k+1}  & = \Gamma^k +  \rho(S^{k+1} - V^{k+1})
+		\label{eq:admm_applied_lagrangegamma}
+		\\
+		\Delta^{k+1}  & = \Delta^k + \rho(B^{k+1} - L^{k+1})\,.
+		\label{eq:admm_applied_lagrangedelta}
+		\\
+		\Lambda^{k+1} & = \Lambda^k + \rho(X^{k+1} - B^{k+1} - V^{k+1})\,.
+		\label{eq:admm_applied_lagrangelambda}
+	\end{align}
 \end{subequations}
 We can see that~\eqref{eq:admm_applied_sl} decomposes into three independent
 problems, in $X$, $S$, and $L$, that can be solved in parallel. Also,
@@ -392,53 +392,53 @@ each of these problems.
 \mypar{Updating $\bm{X}$}
 The problem in $X$ in~\eqref{eq:admm_applied_sl} can be rewritten as
 \begin{align}
-  &
-  \underset{X}{\text{minimize}}\,\,\,
-  \frac{\lambda_0}{2}
-  \big\|Y - \mathcal{H}(X)\big\|_F^2
-  +
-  \langle\Lambda^k, X - B^{k} - V^{k}\rangle
-  +
-  \frac{\rho}{2}
-  \big\|X - B^k - V^k\big\|_{F}^2
-  \notag
-  \\[0.2cm]
-  \Longleftrightarrow\qquad &
-  \underset{X}{\text{minimize}}\,\,\,
-  \frac{\lambda_0}{2}
-  \big\|Y - \mathcal{H}(X) \big\|_F^2
-  +
-  \frac{\rho}{2}
-  \Big\| X - \big(B^k + V^k - \frac{1}{\rho}\Lambda^k\big) \Big\|_F^2\,.
-  \label{eq:probx1}
+	                          &
+	\underset{X}{\text{minimize}}\,\,\,
+	\frac{\lambda_0}{2}
+	\big\|Y - \mathcal{H}(X)\big\|_F^2
+	+
+	\langle\Lambda^k, X - B^{k} - V^{k}\rangle
+	+
+	\frac{\rho}{2}
+	\big\|X - B^k - V^k\big\|_{F}^2
+	\notag
+	\\[0.2cm]
+	\Longleftrightarrow\qquad &
+	\underset{X}{\text{minimize}}\,\,\,
+	\frac{\lambda_0}{2}
+	\big\|Y - \mathcal{H}(X) \big\|_F^2
+	+
+	\frac{\rho}{2}
+	\Big\| X - \big(B^k + V^k - \frac{1}{\rho}\Lambda^k\big) \Big\|_F^2\,.
+	\label{eq:probx1}
 \end{align}
 Defining $y := \text{vec}(Y) \in \mathbb{R}^{MQ}$ and
 \begin{align*}
-  X_a &:= B^k + V^k - \frac{1}{\rho}\Lambda^k \in \mathbb{R}^{M \times N \times F}
-  \\
-  x_a &:= \text{vec}(X_a) \in \mathbb{R}^{MNF}\,,
+	X_a & := B^k + V^k - \frac{1}{\rho}\Lambda^k \in \mathbb{R}^{M \times N \times F}
+	\\
+	x_a & := \text{vec}(X_a) \in \mathbb{R}^{MNF}\,,
 \end{align*}
 where the vectorization of a tensor follows a specific order (described below),
 problem~\eqref{eq:probx1} can be written in a vector format:
 \begin{align*}
-  \underset{x \in \mathbb{R}^{MNF}}{\text{minimize}}\,\,\,
-  \frac{\lambda_0}{2}
-  \|y - Hx\|_2^2
-  +
-  \frac{\rho}{2}
-  \| x - x_a\|_2^2\,,
+	\underset{x \in \mathbb{R}^{MNF}}{\text{minimize}}\,\,\,
+	\frac{\lambda_0}{2}
+	\|y - Hx\|_2^2
+	+
+	\frac{\rho}{2}
+	\| x - x_a\|_2^2\,,
 \end{align*}
 where $H \in \mathbb{R}^{MQ \times MNF}$ is a matricial representation of
 $\mathcal{H}$. Taking the gradient w.r.t.\ $x$ and equating it to zero, we
 obtain a closed-form solution for updating $X$:
 \begin{align}
-  x^{k+1}
-  =
-  \left(H^\top H + \frac{\rho}{\lambda_0} I_{MNF \times MNF}\right)^{-1}
-  \left[H^\top y + \frac{\rho}{\lambda_0} x_a\right]\,,
-  \label{eq:probxclosedformvec}
+	x^{k+1}
+	=
+	\left(H^\top H + \frac{\rho}{\lambda_0} I_{MNF \times MNF}\right)^{-1}
+	\left[H^\top y + \frac{\rho}{\lambda_0} x_a\right]\,,
+	\label{eq:probxclosedformvec}
 \end{align}
-where $I_{MNF \times MNF}$ is the identity matrix. 
+where $I_{MNF \times MNF}$ is the identity matrix.
 
 In practice, we should not compute the matrices
 in~\eqref{eq:probxclosedformvec} explicitly. To see how to perform the
@@ -446,55 +446,55 @@ operations in~\eqref{eq:probxclosedformvec}, let us consider the simple case of
 conventional snapshot compressive imaging, i.e., no pixel-shifts. In this case,
 $Y \in \mathbb{R}^{M\times N}$. Let $Z \in \mathbb{R}^{M \times N\times F}$ be
 a generic tensor and let $\mathcal{H}$ apply mask $M_f \in \mathbb{R}^{M\times
-N}$ to frame $f$. In other words, 
+		N}$ to frame $f$. In other words,
 \begin{align*}
-  &\qquad
-  Y = \sum_{f=1}^{F} M_f \odot Z_{:,:,f} 
-  \\
-  \Longleftrightarrow &\qquad
-  \text{vec}(Y)
-  =
-  \sum_{f=1}^{F} \text{vec}(M_f) \odot \text{vec}(Z_{:,:,f})
-  \\
-  \Longleftrightarrow &\qquad
-  \underbrace{\text{vec}(Y)}_{y}
-  =
-  \underbrace{
-  \begin{bmatrix}
-    \text{Diag}(m_1) & \cdots & \text{Diag}(m_F)
-  \end{bmatrix}
-  }_{H}
-  \underbrace{
-  \begin{bmatrix}
-    \text{vec}(Z_{:, :, 1})
-    \\
-    \vdots
-    \\
-    \text{vec}(Z_{:, :, F})
-  \end{bmatrix}}_{z}\,,
+	                    & \qquad
+	Y = \sum_{f=1}^{F} M_f \odot Z_{:,:,f}
+	\\
+	\Longleftrightarrow & \qquad
+	\text{vec}(Y)
+	=
+	\sum_{f=1}^{F} \text{vec}(M_f) \odot \text{vec}(Z_{:,:,f})
+	\\
+	\Longleftrightarrow & \qquad
+	\underbrace{\text{vec}(Y)}_{y}
+	=
+	\underbrace{
+		\begin{bmatrix}
+			\text{Diag}(m_1) & \cdots & \text{Diag}(m_F)
+		\end{bmatrix}
+	}_{H}
+	\underbrace{
+		\begin{bmatrix}
+			\text{vec}(Z_{:, :, 1})
+			\\
+			\vdots
+			\\
+			\text{vec}(Z_{:, :, F})
+		\end{bmatrix}}_{z}\,,
 \end{align*}
 where $\odot$ represents the pointwise (Hadamard) product, $m_f :=
-\text{vec}(M_f)$, and $\text{Diag}(\cdot)$ represents a diagonal matrix with a
+	\text{vec}(M_f)$, and $\text{Diag}(\cdot)$ represents a diagonal matrix with a
 specified vector in the diagonal. The matrix $H$ is indicated as well as the
 vectorization of the tensor $X$. The matrix $H^\top H$
 in~\eqref{eq:probxclosedformvec} is a block matrix with diagonal blocks.
 However, using the matrix inversion lemma~\cite{Boyd04-ConvexOptimization}, we can
-work instead with $H H^\top$, which is diagonal: 
+work instead with $H H^\top$, which is diagonal:
 \begin{align*}
-  HH^\top  = \sum_{f=1}^{F} \text{Diag}(m_f^2)\,,
+	HH^\top  = \sum_{f=1}^{F} \text{Diag}(m_f^2)\,,
 \end{align*}
 where $m_f^2 := m_f \odot m_f$ denotes the vector $m_f$ with squared entries.
 Note that the diagonal of $HH^\top$ can be computed before the execution of the
 algorithm. The matrix inversion lemma will give us
 \begin{align}
-  \label{eq:matrixinversionlemma}
-  \left(H^\top H + \frac{\rho}{\lambda_0} I_{MNF \times MNF}\right)^{-1}
-  =
-  \frac{\lambda_0}{\rho}
-  \bigg[
-    I - \frac{\lambda_0}{\rho}
-    H^\top\big( I + \frac{\lambda_0}{\rho}H H^\top\big)^{-1}H
-  \bigg]\,,
+	\label{eq:matrixinversionlemma}
+	\left(H^\top H + \frac{\rho}{\lambda_0} I_{MNF \times MNF}\right)^{-1}
+	=
+	\frac{\lambda_0}{\rho}
+	\bigg[
+		I - \frac{\lambda_0}{\rho}
+		H^\top\big( I + \frac{\lambda_0}{\rho}H H^\top\big)^{-1}H
+		\bigg]\,,
 \end{align}
 where we omitted the dimensions of the identity matrices for simplicity. Note
 that the first one in the righthand side of~\eqref{eq:matrixinversionlemma} is
@@ -502,15 +502,15 @@ $MNF \times MNF$, while the second one is $MN \times MN$.
 Plugging~\eqref{eq:matrixinversionlemma} into~\eqref{eq:probxclosedformvec}
 yields
 \begin{align}
-  x^{k+1}
-  =
-  \frac{\lambda_0}{\rho}
-  \bigg[
-    I - \frac{\lambda_0}{\rho}
-    H^\top\big( I + \frac{\lambda_0}{\rho}H H^\top\big)^{-1}H
-  \bigg]
-  \left(H^\top y + \frac{\rho}{\lambda_0} x_a\right)\,.
-  \label{eq:probxclosedformvecmil}
+	x^{k+1}
+	=
+	\frac{\lambda_0}{\rho}
+	\bigg[
+		I - \frac{\lambda_0}{\rho}
+		H^\top\big( I + \frac{\lambda_0}{\rho}H H^\top\big)^{-1}H
+		\bigg]
+	\left(H^\top y + \frac{\rho}{\lambda_0} x_a\right)\,.
+	\label{eq:probxclosedformvecmil}
 \end{align}
 Undoing the vectorization operations, we can compute the result
 of~\eqref{eq:probxclosedformvecmil} from right to left according to
@@ -519,33 +519,33 @@ the elementwise division, and $1_{M\times N}$ the matrix of all-ones in
 $\mathbb{R}^{M\times N}$.
 
 \begin{algorithm}
-  \caption{Update of $X$ in~\eqref{eq:probxclosedformvecmil} for
-  conventional SCI}
-  \label{alg:updateX}
-  \begin{algorithmic}[1]
-  %\small
-    \algrenewcommand\algorithmicrequire{\textbf{Before the algorithm:}}
-    \Require Compute diagonal of $HH^\top$: $D_{HH} = \sum_{f=1}^{F} M_f^2 \in \mathbb{R}^{M\times N}$
-    \algrenewcommand\algorithmicrequire{\textbf{During the algorithm:}}
-    \Require
-    \State $C_1 = \frac{\rho}{\lambda_0} (B^k + V^k - \frac{1}{\rho}\Lambda^k) \in \mathbb{R}^{M\times N\times F}$
-    \State $C_2 \in \mathbb{R}^{M\times N\times F}$ such that each slice
-    $(C_2)_{:, :, f} = M_f \odot Y$, $f = 1, \ldots, F$
-    \State $C_3 = C_1 + C_2 \in \mathbb{R}^{M \times N\times F}$
-    \State $C_4 = \sum_{f=1}^{F} M_f \odot (C_3)_{:, :, f} \in \mathbb{R}^{M\times N}$
-    \State $C_5 = C_4 \oslash (1_{M\times N} + \frac{\lambda_0}{\rho}D_{HH}) \in \mathbb{R}^{M\times N}$
-    \label{subAlg:inversestep}
-    \State $C_6 \in \mathbb{R}^{M\times N\times F}$ such that each slice
-    $(C_6)_{:, :, f} = M_f \odot C_5$, $f = 1, \ldots, F$
-    \State $X^{k+1} = \frac{\lambda_0}{\rho}(C_3 - \frac{\lambda_0}{\rho}C_6) \in \mathbb{R}^{M\times
-    N\times F}$
-  \end{algorithmic}
+	\caption{Update of $X$ in~\eqref{eq:probxclosedformvecmil} for
+		conventional SCI}
+	\label{alg:updateX}
+	\begin{algorithmic}[1]
+		%\small
+		\algrenewcommand\algorithmicrequire{\textbf{Before the algorithm:}}
+		\Require Compute diagonal of $HH^\top$: $D_{HH} = \sum_{f=1}^{F} M_f^2 \in \mathbb{R}^{M\times N}$
+		\algrenewcommand\algorithmicrequire{\textbf{During the algorithm:}}
+		\Require
+		\State $C_1 = \frac{\rho}{\lambda_0} (B^k + V^k - \frac{1}{\rho}\Lambda^k) \in \mathbb{R}^{M\times N\times F}$
+		\State $C_2 \in \mathbb{R}^{M\times N\times F}$ such that each slice
+		$(C_2)_{:, :, f} = M_f \odot Y$, $f = 1, \ldots, F$
+		\State $C_3 = C_1 + C_2 \in \mathbb{R}^{M \times N\times F}$
+		\State $C_4 = \sum_{f=1}^{F} M_f \odot (C_3)_{:, :, f} \in \mathbb{R}^{M\times N}$
+		\State $C_5 = C_4 \oslash (1_{M\times N} + \frac{\lambda_0}{\rho}D_{HH}) \in \mathbb{R}^{M\times N}$
+		\label{subAlg:inversestep}
+		\State $C_6 \in \mathbb{R}^{M\times N\times F}$ such that each slice
+		$(C_6)_{:, :, f} = M_f \odot C_5$, $f = 1, \ldots, F$
+		\State $X^{k+1} = \frac{\lambda_0}{\rho}(C_3 - \frac{\lambda_0}{\rho}C_6) \in \mathbb{R}^{M\times
+				N\times F}$
+	\end{algorithmic}
 \end{algorithm}
 This code can run fast if
 \begin{itemize}
-  \item Memory to store $C_1, \ldots, C_6, X^{k+1}$ is preallocated
+	\item Memory to store $C_1, \ldots, C_6, X^{k+1}$ is preallocated
 
-  \item Operations in each step are parallelized, e.g., in a GPU.
+	\item Operations in each step are parallelized, e.g., in a GPU.
 \end{itemize}
 The total operation count is roughly $10MNF + 3MN$ FLOPs.
 
@@ -555,183 +555,183 @@ vectorizations are column-major. If we assume instead that vectors are
 represented as rows and vectorizations are row-major, we modify the above steps
 as follows:
 \begin{align*}
-  X_a &:= B^k + V^k - \frac{1}{\rho}\Lambda^k \in \mathbb{R}^{F \times M \times N}
-  \\
-  x_a &:= \text{vec}(X_a) \in \mathbb{R}^{1\times MNF}\,.
+	X_a & := B^k + V^k - \frac{1}{\rho}\Lambda^k \in \mathbb{R}^{F \times M \times N}
+	\\
+	x_a & := \text{vec}(X_a) \in \mathbb{R}^{1\times MNF}\,.
 \end{align*}
 Problem~\eqref{eq:probx1} is equivalent to
 \begin{align*}
-  \underset{x \in \mathbb{R}^{1\times FMN}}{\text{minimize}}\,\,\,
-  \frac{\lambda_0}{2}
-  \|y - xH\|_2^2
-  +
-  \frac{\rho}{2}
-  \| x - x_a\|_2^2\,,
+	\underset{x \in \mathbb{R}^{1\times FMN}}{\text{minimize}}\,\,\,
+	\frac{\lambda_0}{2}
+	\|y - xH\|_2^2
+	+
+	\frac{\rho}{2}
+	\| x - x_a\|_2^2\,,
 \end{align*}
 where $H \in \mathbb{R}^{FMN \times MQ}$ is a matricial representation of
 $\mathcal{H}$. And~\eqref{eq:probxclosedformvec} is now
 \begin{align}
-  x^{k+1}
-  =
-  \left[yH^\top + \frac{\rho}{\lambda_0} x_a\right]
-  \left(HH^\top + \frac{\rho}{\lambda_0} I_{FMN \times FMN}\right)^{-1}\,.
-  \label{eq:probxclosedformvecrm}
+	x^{k+1}
+	=
+	\left[yH^\top + \frac{\rho}{\lambda_0} x_a\right]
+	\left(HH^\top + \frac{\rho}{\lambda_0} I_{FMN \times FMN}\right)^{-1}\,.
+	\label{eq:probxclosedformvecrm}
 \end{align}
 And given $Y \in \mathbb{R}^{M\times N}$, $Z \in \mathbb{R}^{F\times M\times
-N}$, and a set of masks $M_f \in \mathbb{R}^{M\times N}$, we now have
+		N}$, and a set of masks $M_f \in \mathbb{R}^{M\times N}$, we now have
 \begin{align*}
-  &\qquad
-  Y = \sum_{f=1}^{F} M_f \odot Z_{f,:,:} 
-  \\
-  \Longleftrightarrow &\qquad
-  \text{vec}(Y)
-  =
-  \sum_{f=1}^{F} \text{vec}(Z_{f,:,:}) \odot \text{vec}(M_f) 
-  \\
-  \Longleftrightarrow &\qquad
-  \underbrace{\text{vec}(Y)}_{y}
-  =
-  \underbrace{
-  \begin{bmatrix}
-    \text{vec}(Z_{1, :, :})
-    &
-    \cdots
-    &
-    \text{vec}(Z_{F, :, :})
-  \end{bmatrix}}_{z}
-  \underbrace{
-  \begin{bmatrix}
-    \text{Diag}(m_1) \\ \vdots \\ \text{Diag}(m_F)
-  \end{bmatrix}
-  }_{H}
+	                    & \qquad
+	Y = \sum_{f=1}^{F} M_f \odot Z_{f,:,:}
+	\\
+	\Longleftrightarrow & \qquad
+	\text{vec}(Y)
+	=
+	\sum_{f=1}^{F} \text{vec}(Z_{f,:,:}) \odot \text{vec}(M_f)
+	\\
+	\Longleftrightarrow & \qquad
+	\underbrace{\text{vec}(Y)}_{y}
+	=
+	\underbrace{
+		\begin{bmatrix}
+			\text{vec}(Z_{1, :, :})
+			 &
+			\cdots
+			 &
+			\text{vec}(Z_{F, :, :})
+		\end{bmatrix}}_{z}
+	\underbrace{
+		\begin{bmatrix}
+			\text{Diag}(m_1) \\ \vdots \\ \text{Diag}(m_F)
+		\end{bmatrix}
+	}_{H}
 \end{align*}
 The matrix $HH^\top$ is not diagonal, but $H^\top H$ is:
 \begin{align*}
-  H^\top H  = \sum_{f=1}^{F} \text{Diag}(m_f^2)\,.
+	H^\top H  = \sum_{f=1}^{F} \text{Diag}(m_f^2)\,.
 \end{align*}
 Finally, \eqref{eq:probxclosedformvecmil} becomes
 \begin{align}
-  x^{k+1}
-  =
-  \frac{\lambda_0}{\rho}
-  \underbrace{\left(y H^\top + \frac{\rho}{\lambda_0} x_a\right)}_{c_3}
-  \bigg[
-    I - \frac{\lambda_0}{\rho}
-    H\big( I + \frac{\lambda_0}{\rho}H^\top H\big)^{-1}H^\top
-  \bigg]\,.
-  \label{eq:probxclosedformvecmilrm}
+	x^{k+1}
+	=
+	\frac{\lambda_0}{\rho}
+	\underbrace{\left(y H^\top + \frac{\rho}{\lambda_0} x_a\right)}_{c_3}
+	\bigg[
+		I - \frac{\lambda_0}{\rho}
+		H\big( I + \frac{\lambda_0}{\rho}H^\top H\big)^{-1}H^\top
+		\bigg]\,.
+	\label{eq:probxclosedformvecmilrm}
 \end{align}
 Note that the inner identity matrix is $MN \times MN$, while the outer one is
 $MNF \times MNF$. And Algorithm~\ref{alg:updateX} is modified as
 Algorithm~\ref{alg:updateXrm}
 \begin{algorithm}
-  \caption{Update of $X$ in~\eqref{eq:probxclosedformvecmilrm} for
-  conventional SCI: row majorization}
-  \label{alg:updateXrm}
-  \begin{algorithmic}[1]
-  %\small
-    \algrenewcommand\algorithmicrequire{\textbf{Before the algorithm:}}
-    \Require Compute diagonal of $H^\top H$: $D_{HH} = \sum_{f=1}^{F} M_f^2 \in \mathbb{R}^{M\times N}$
-    \algrenewcommand\algorithmicrequire{\textbf{During the algorithm:}}
-    \Require
-    \State $C_1 = \frac{\rho}{\lambda_0} (B^k + V^k - \frac{1}{\rho}\Lambda^k) \in \mathbb{R}^{F\times M\times N}$
-    \Comment{$\frac{\rho}{\lambda_0}x_a$}
-    \State $C_2 \in \mathbb{R}^{F\times M\times N}$ such that each slice
-    $(C_2)_{f,:, :} = M_f \odot Y$, $f = 1, \ldots, F$
-    \Comment{$y H^\top$}
-    \State $C_3 = C_1 + C_2 \in \mathbb{R}^{F\times M \times N}$
-    \Comment{$y H^\top + \frac{\rho}{\lambda_0}x_a$}
-    \State $C_4 = \sum_{f=1}^{F} M_f \odot (C_3)_{f, :, :} \in \mathbb{R}^{M\times N}$
-    \Comment{$c_3 H$}
-    \State $C_5 = C_4 \oslash (1_{M\times N} + \frac{\lambda_0}{\rho}D_{HH}) \in \mathbb{R}^{M\times N}$
-    \label{subAlg:inversesteprm}
-    \State $C_6 \in \mathbb{R}^{F\times M\times N}$ such that each slice
-    $(C_6)_{f, :, :} = M_f \odot C_5$, $f = 1, \ldots, F$
-    \State $X^{k+1} = \frac{\lambda_0}{\rho}(C_3 - \frac{\lambda_0}{\rho}C_6) \in \mathbb{R}^{F\times
-    M\times N}$
-  \end{algorithmic}
+	\caption{Update of $X$ in~\eqref{eq:probxclosedformvecmilrm} for
+		conventional SCI: row majorization}
+	\label{alg:updateXrm}
+	\begin{algorithmic}[1]
+		%\small
+		\algrenewcommand\algorithmicrequire{\textbf{Before the algorithm:}}
+		\Require Compute diagonal of $H^\top H$: $D_{HH} = \sum_{f=1}^{F} M_f^2 \in \mathbb{R}^{M\times N}$
+		\algrenewcommand\algorithmicrequire{\textbf{During the algorithm:}}
+		\Require
+		\State $C_1 = \frac{\rho}{\lambda_0} (B^k + V^k - \frac{1}{\rho}\Lambda^k) \in \mathbb{R}^{F\times M\times N}$
+		\Comment{$\frac{\rho}{\lambda_0}x_a$}
+		\State $C_2 \in \mathbb{R}^{F\times M\times N}$ such that each slice
+		$(C_2)_{f,:, :} = M_f \odot Y$, $f = 1, \ldots, F$
+		\Comment{$y H^\top$}
+		\State $C_3 = C_1 + C_2 \in \mathbb{R}^{F\times M \times N}$
+		\Comment{$y H^\top + \frac{\rho}{\lambda_0}x_a$}
+		\State $C_4 = \sum_{f=1}^{F} M_f \odot (C_3)_{f, :, :} \in \mathbb{R}^{M\times N}$
+		\Comment{$c_3 H$}
+		\State $C_5 = C_4 \oslash (1_{M\times N} + \frac{\lambda_0}{\rho}D_{HH}) \in \mathbb{R}^{M\times N}$
+		\label{subAlg:inversesteprm}
+		\State $C_6 \in \mathbb{R}^{F\times M\times N}$ such that each slice
+		$(C_6)_{f, :, :} = M_f \odot C_5$, $f = 1, \ldots, F$
+		\State $X^{k+1} = \frac{\lambda_0}{\rho}(C_3 - \frac{\lambda_0}{\rho}C_6) \in \mathbb{R}^{F\times
+				M\times N}$
+	\end{algorithmic}
 \end{algorithm}
 
 \mypar{Updating $\bm{S}$}
 The problem in $S$ in~\eqref{eq:admm_applied_sl} is
 \begin{align*}
-  S^{k+1} 
-  &=
-  \underset{S}{\arg\min} \,\,\,
-  \langle\Theta^k, S - U^k\rangle
-  +
-  \langle\Gamma^k, S - V^k\rangle
-  +
-  \frac{\rho}{2}
-  \|S - U^k\|_{F}^2
-  +
-  \frac{\rho}{2}
-  \|S - V^k\|_{F}^2
-  \\ 
-  &=
-  \frac{1}{2}
-  \Big(U^k + V^k - \frac{1}{\rho}\Theta^k - \frac{1}{\rho}\Gamma^k\Big)\,,
+	S^{k+1}
+	 & =
+	\underset{S}{\arg\min} \,\,\,
+	\langle\Theta^k, S - U^k\rangle
+	+
+	\langle\Gamma^k, S - V^k\rangle
+	+
+	\frac{\rho}{2}
+	\|S - U^k\|_{F}^2
+	+
+	\frac{\rho}{2}
+	\|S - V^k\|_{F}^2
+	\\
+	 & =
+	\frac{1}{2}
+	\Big(U^k + V^k - \frac{1}{\rho}\Theta^k - \frac{1}{\rho}\Gamma^k\Big)\,,
 \end{align*}
-where we simply equated the derivative w.r.t.\ $S$ to zero. 
+where we simply equated the derivative w.r.t.\ $S$ to zero.
 
 \mypar{Updating $\bm{L}$}
 The problem in $L$ in~\eqref{eq:admm_applied_sl} can be rewritten as
 \begin{align}
-  &\qquad
-  \underset{L}{\text{minimize}} \,\,\,
-  \lambda_2 \big\|\overline{L}\big\|_{\star}
-  +
-  \langle\Delta^k,B^k - L\rangle
-  +
-  \frac{\rho}{2}
-  \|B^k - L\|_{F}^2
-  \notag
-  \\
-  \Longleftrightarrow
-  &\qquad
-  \underset{L}{\text{minimize}} \,\,\,
-  \frac{\lambda_2}{\rho} \big\|\overline{L}\big\|_{\star}
-  +
-  \frac{1}{2}
-  \Big\|L - \big(B^k + \frac{1}{\rho} \Delta^k\big)\Big\|_F^2\,.
-  \label{eq:probL1}
+	 & \qquad
+	\underset{L}{\text{minimize}} \,\,\,
+	\lambda_2 \big\|\overline{L}\big\|_{\star}
+	+
+	\langle\Delta^k,B^k - L\rangle
+	+
+	\frac{\rho}{2}
+	\|B^k - L\|_{F}^2
+	\notag
+	\\
+	\Longleftrightarrow
+	 & \qquad
+	\underset{L}{\text{minimize}} \,\,\,
+	\frac{\lambda_2}{\rho} \big\|\overline{L}\big\|_{\star}
+	+
+	\frac{1}{2}
+	\Big\|L - \big(B^k + \frac{1}{\rho} \Delta^k\big)\Big\|_F^2\,.
+	\label{eq:probL1}
 \end{align}
-In other words, 
+In other words,
 \begin{align}
-  \label{eq:proxL}
-  L^{k+1} =
-  \text{prox}_{\frac{\lambda_2}{\rho}\|\overline{\cdot}\|_{\star}}\Big(B^k +
-  \frac{1}{\rho}\Delta^k\Big)\,,
+	\label{eq:proxL}
+	L^{k+1} =
+	\text{prox}_{\frac{\lambda_2}{\rho}\|\overline{\cdot}\|_{\star}}\Big(B^k +
+	\frac{1}{\rho}\Delta^k\Big)\,,
 \end{align}
 where the \textit{proximal operator} of a function $f$ at point $y$ is
 defined as
 \begin{align*}
-  \text{prox}_f(y)
-  :=
-  \underset{x}{\arg\min}\,\,\, f(x) + \frac{1}{2}\|x - y\|_2^2\,.
+	\text{prox}_f(y)
+	:=
+	\underset{x}{\arg\min}\,\,\, f(x) + \frac{1}{2}\|x - y\|_2^2\,.
 \end{align*}
 If we use a simple nuclear norm (unweighted), the solution to~\eqref{eq:proxL}
 requires
 \begin{enumerate}
-  \item Forming the tensor $L_a := B^k + \frac{1}{\rho}\Delta^k \in
-    \mathbb{R}^{M\times N\times F}$ and reshaping it to a matrix
-    $\overline{L}_a \in \mathbb{R}^{MN \times F}$.
+	\item Forming the tensor $L_a := B^k + \frac{1}{\rho}\Delta^k \in
+		      \mathbb{R}^{M\times N\times F}$ and reshaping it to a matrix
+	      $\overline{L}_a \in \mathbb{R}^{MN \times F}$.
 
-  \item Computing the singular value decomposition of $\overline{L}_a$:
-    \begin{align*}
-      \overline{L}_a = U \Sigma V^\top\,,
-    \end{align*}
-    where $U \in \mathbb{R}^{MN \times k}$ and $V \in \mathbb{R}^{F \times k}$
-    contain orthonormal columns, and $\Sigma \in \mathbb{R}^{k \times k}$ is a
-    diagonal matrix with singular values. The integer $k$ is the rank of
-    $\overline{L}_a$ and is usually not known in advance.
+	\item Computing the singular value decomposition of $\overline{L}_a$:
+	      \begin{align*}
+		      \overline{L}_a = U \Sigma V^\top\,,
+	      \end{align*}
+	      where $U \in \mathbb{R}^{MN \times k}$ and $V \in \mathbb{R}^{F \times k}$
+	      contain orthonormal columns, and $\Sigma \in \mathbb{R}^{k \times k}$ is a
+	      diagonal matrix with singular values. The integer $k$ is the rank of
+	      $\overline{L}_a$ and is usually not known in advance.
 
-  \item Constructing the solution $\overline{L}^{k+1} = U
-    \mathcal{S}_{\frac{\lambda_2}{\rho}}(\Sigma)V^\top$\,, where
-    $\mathcal{S}_{c}(x) := \max\{x - c, 0\}$ is a soft-thresholding operation
-    applied componentwise to a matrix. See, e.g.,
-    \cite[(1)-(3)]{Gu17-WeightedNuclearNormMinimizationAndItsApplicationsToLowLevelVision}.
-    Then, we need to reshape $\overline{L}^{k+1}$ back to a tensor $L^{k+1}$.
+	\item Constructing the solution $\overline{L}^{k+1} = U
+		      \mathcal{S}_{\frac{\lambda_2}{\rho}}(\Sigma)V^\top$\,, where
+	      $\mathcal{S}_{c}(x) := \max\{x - c, 0\}$ is a soft-thresholding operation
+	      applied componentwise to a matrix. See, e.g.,
+	      \cite[(1)-(3)]{Gu17-WeightedNuclearNormMinimizationAndItsApplicationsToLowLevelVision}.
+	      Then, we need to reshape $\overline{L}^{k+1}$ back to a tensor $L^{k+1}$.
 \end{enumerate}
 If we use a weighted nuclear
 norm~\cite{Gu17-WeightedNuclearNormMinimizationAndItsApplicationsToLowLevelVision},
@@ -742,23 +742,23 @@ in~\cite{Halko11-FindingStructureWithRandomness}.
 In Python, the following packages implement algorithms
 from~\cite{Halko11-FindingStructureWithRandomness}:
 \begin{itemize}
-  \item \href{https://docs.pytorch.org/docs/stable/generated/torch.svd_lowrank.html}{PyTorch}
+	\item \href{https://docs.pytorch.org/docs/stable/generated/torch.svd_lowrank.html}{PyTorch}
 
-  \item \href{https://scikit-learn.org/stable/modules/generated/sklearn.utils.extmath.randomized_svd.html#rf38c2b656ebc-1}{Scikit-learn}
+	\item \href{https://scikit-learn.org/stable/modules/generated/sklearn.utils.extmath.randomized_svd.html#rf38c2b656ebc-1}{Scikit-learn}
 \end{itemize}
 According to~\cite[\S4.6, \S5.1]{Halko11-FindingStructureWithRandomness}, the
 cost of computing the SVD decomposition in step 2 should be $O(MNF(\log(\ell) +
-k))$, where $k$ is the rank of $\overline{L}_a$ and $\ell$ is the oversampling parameter,
+	k))$, where $k$ is the rank of $\overline{L}_a$ and $\ell$ is the oversampling parameter,
 which is typically a small number (between $2$ and $10$).
 This assumes the computation is done using the FFT rather than Gaussian
 matrices.
 
 \begin{Remark}
-An important aspect in terms of implementation is that if the above software
-packages accept implicit access to $\overline{L}_a$, i.e., rather than the full
-matrix, only functions performing matrix vector products $\overline{L}_a x$ and
-$\overline{L}_a ^\top y$, we may be able to compute the SVD decomposition
-without reshaping $L_a$ into $\overline{L}_a$.
+	An important aspect in terms of implementation is that if the above software
+	packages accept implicit access to $\overline{L}_a$, i.e., rather than the full
+	matrix, only functions performing matrix vector products $\overline{L}_a x$ and
+	$\overline{L}_a ^\top y$, we may be able to compute the SVD decomposition
+	without reshaping $L_a$ into $\overline{L}_a$.
 \end{Remark}
 
 According
@@ -766,17 +766,17 @@ to~\cite{Gu17-WeightedNuclearNormMinimizationAndItsApplicationsToLowLevelVision,
 improve the performance of the algorithm by using a weighted (or reweighted)
 nuclear norm. That is, instead of~\eqref{eq:probL1}, we solve
 \begin{align}
-  \underset{\overline{L}}{\text{minimize}} \,\,\,
-  \frac{\lambda_2}{\rho} \big\|\overline{L}\big\|_{w,\star}
-  +
-  \frac{1}{2}
-  \big\|\overline{L} - \overline{L}_a\big\|_F^2\,,
-  \label{eq:proxLnew}
+	\underset{\overline{L}}{\text{minimize}} \,\,\,
+	\frac{\lambda_2}{\rho} \big\|\overline{L}\big\|_{w,\star}
+	+
+	\frac{1}{2}
+	\big\|\overline{L} - \overline{L}_a\big\|_F^2\,,
+	\label{eq:proxLnew}
 \end{align}
-where $\overline{L}_a$ is defined in step 1 above, 
+where $\overline{L}_a$ is defined in step 1 above,
 \begin{align}
-  \label{eq:weightednuclearnorm}
-  \|X\|_{w, \star} := \sum_{i} w_i \sigma_i(X)\,,
+	\label{eq:weightednuclearnorm}
+	\|X\|_{w, \star} := \sum_{i} w_i \sigma_i(X)\,,
 \end{align}
 is the \textit{weighted nuclear norm}, and $\sigma_i(X)$ represents the $i$th
 singular value of $X$. We assume $w_i \geq 0$, for all $i$. Theorem 1
@@ -784,25 +784,25 @@ of~\cite{Gu17-WeightedNuclearNormMinimizationAndItsApplicationsToLowLevelVision}
 applies the von Neumann trace inequality to show that the solution
 of~\eqref{eq:proxLnew} is given by
 \begin{align*}
-  \overline{L}^{k+1}
-  =
-  U D V^\top\,,
+	\overline{L}^{k+1}
+	=
+	U D V^\top\,,
 \end{align*}
 where $\overline{L}_a = U \Sigma V^\top$ is the SVD decomposition of
 $\overline{L}_a$, and $D = \text{Diag}\big(d_1, \ldots, d_{\min\{MN, F\}}\big)$ is a
-diagonal matrix whose diagonal values are the solution of 
+diagonal matrix whose diagonal values are the solution of
 \begin{align}
-  \label{eq:proxweightednucnorm}
-  \begin{array}[t]{cl}
-    \underset{d_1, \ldots, d_{\min\{MN, F\}}}{\text{minimize}}
-    &
-    \sum_{i=1}^{\min\{MN, F\}} 
-    \frac{1}{2}(\sigma_i - d_i)^2 + \frac{\lambda_2 w_i}{\rho} d_i
-    \\
-    \text{subject to}
-    &
-    d_1 \geq d_2 \geq \cdots \geq d_n \geq 0\,,
-  \end{array}
+	\label{eq:proxweightednucnorm}
+	\begin{array}[t]{cl}
+		\underset{d_1, \ldots, d_{\min\{MN, F\}}}{\text{minimize}}
+		 &
+		\sum_{i=1}^{\min\{MN, F\}}
+		\frac{1}{2}(\sigma_i - d_i)^2 + \frac{\lambda_2 w_i}{\rho} d_i
+		\\
+		\text{subject to}
+		 &
+		d_1 \geq d_2 \geq \cdots \geq d_n \geq 0\,,
+	\end{array}
 \end{align}
 where $\sigma_i$ is the $i$th diagonal entry of $\Sigma$.
 As in Corollary 1
@@ -811,119 +811,119 @@ if the weights satisfy $0\leq w_1 \leq w_2 \leq \cdots \leq w_{\min\{MN, F\}}$,
 then the constraint of~\eqref{eq:proxweightednucnorm} is automatically
 satisfied, and its solution is given by
 \begin{align}
-  \label{eq:proxweightednucnormWithDecWeights}
-  d_i = \max\Big\{\sigma_i - \frac{\lambda_2}{\rho}w_i\,, 0\Big\}\,,\qquad\quad
-  i = 1, \ldots, \min\{MN, F\}\,.
+	\label{eq:proxweightednucnormWithDecWeights}
+	d_i = \max\Big\{\sigma_i - \frac{\lambda_2}{\rho}w_i\,, 0\Big\}\,,\qquad\quad
+	i = 1, \ldots, \min\{MN, F\}\,.
 \end{align}
 The paper suggests a reweighted solution based on reweighted $\ell_1$-norm
 minimization~\cite{Candes08-EnhancingSparsityReweightedL1Minimization}, where
 weights are iteratively updated as
 \begin{align}
-  \label{eq:probLReweightedupdate}
-  w_i^{t+1} = \frac{1}{d_i^t + \epsilon}\,,\qquad
-  i = 1, \ldots, \min\{MN, F\}\,,
+	\label{eq:probLReweightedupdate}
+	w_i^{t+1} = \frac{1}{d_i^t + \epsilon}\,,\qquad
+	i = 1, \ldots, \min\{MN, F\}\,,
 \end{align}
 where $t$ denotes the iteration number, $d_i^t$ is the estimate of
 the $i$th singular value of $\overline{L}^{k+1}$ at iteration $t$, and $\epsilon > 0$ is a small number for
 stability.
 The weights in~\eqref{eq:probLReweightedupdate} automatically satisfy the
-ordering required for~\eqref{eq:proxweightednucnormWithDecWeights}. 
+ordering required for~\eqref{eq:proxweightednucnormWithDecWeights}.
 The authors
 in~\cite{Gu17-WeightedNuclearNormMinimizationAndItsApplicationsToLowLevelVision}
 compute the limit point of these iterations in closed-form, but the analysis
 looks complicated and the solution seems to have one more free parameter than
-necessary. 
+necessary.
 
 My suggestion is to implement the iterations
 in~\eqref{eq:probLReweightedupdate} recursively using, for example $\epsilon =
-10^{-3}$. In my experience, these requires from $3$ to $40$ iterations to
+	10^{-3}$. In my experience, these requires from $3$ to $40$ iterations to
 converge. The resulting algorithm is described in Algorithm~\ref{alg:updateL}.
 Note that Algorithms~\ref{alg:updateX} and~\ref{alg:updateL} can be run in
 parallel.
 
 \begin{algorithm}
-  \caption{Update of $L$ in~\eqref{eq:proxLnew}}
-  \label{alg:updateL}
-  \begin{algorithmic}[1]
-  %\small
-  \algrenewcommand\algorithmicrequire{\textbf{Initialization:}}
-  \Require Stopping tolerance $\delta > 0$ (e.g., $10^{-3}$), stability number $\epsilon > 0$ (e.g., $10^{-3}$), maximum number of
-  reweighting iterations $T > 0$ (e.g., $50$), parameters to compute the
-  randomized SVD ($\ell$ and a small tolerance).
-  \State Compute $L_a := B^k + \frac{1}{\rho}\Delta^k \in \mathbb{R}^{M\times N\times F}$
-  \State Reshape $L_a$ into $\overline{L}_a \in \mathbb{R}^{MN \times F}$
-  \State Compute SVD $\overline{L}_a = U \Sigma V^\top$ with randomized
-  algorithm
-  \Comment{Do not confuse $U, V$ with $U^k, V^k$}
-  \State Initialize $d_i = \sigma_i$, for $i = 1, \ldots, \min\{MN, F\}$, where
-  $\sigma_i$ is the $i$th diagonal entry of $\Sigma$.
-  \For{$t=1, \ldots, T$}
-    \State Compute, for all $i = 1, \ldots, \min\{MN, F\}$, 
-    \Comment{Use vector form, not a for loop}
-    $$
-    d_i^{t+1} = \max\Big\{\sigma_i - \frac{\lambda_2}{\rho}\frac{1}{d_i^t + \epsilon}\, ,\, 0\Big\}
-    $$
-    \If{$\max_i |d_i^{t+1} - d_i^t| \leq \delta$}
-      \State Break
-    \EndIf
-  \EndFor
-  \State Compute matricial solution $\overline{L}^{k+1} = U
-  \text{Diag}(d_1^{t+1}, \ldots, d_{\min\{MN, F\}}^{t+1}) V^\top$
-  \State Reshape $\overline{L}^{k+1} \in \mathbb{R}^{MN \times F}$ into
-  $L^{k+1} \in \mathbb{R}^{M\times N\times F}$
-  \end{algorithmic}
+	\caption{Update of $L$ in~\eqref{eq:proxLnew}}
+	\label{alg:updateL}
+	\begin{algorithmic}[1]
+		%\small
+		\algrenewcommand\algorithmicrequire{\textbf{Initialization:}}
+		\Require Stopping tolerance $\delta > 0$ (e.g., $10^{-3}$), stability number $\epsilon > 0$ (e.g., $10^{-3}$), maximum number of
+		reweighting iterations $T > 0$ (e.g., $50$), parameters to compute the
+		randomized SVD ($\ell$ and a small tolerance).
+		\State Compute $L_a := B^k + \frac{1}{\rho}\Delta^k \in \mathbb{R}^{M\times N\times F}$
+		\State Reshape $L_a$ into $\overline{L}_a \in \mathbb{R}^{MN \times F}$
+		\State Compute SVD $\overline{L}_a = U \Sigma V^\top$ with randomized
+		algorithm
+		\Comment{Do not confuse $U, V$ with $U^k, V^k$}
+		\State Initialize $d_i = \sigma_i$, for $i = 1, \ldots, \min\{MN, F\}$, where
+		$\sigma_i$ is the $i$th diagonal entry of $\Sigma$.
+		\For{$t=1, \ldots, T$}
+		\State Compute, for all $i = 1, \ldots, \min\{MN, F\}$,
+		\Comment{Use vector form, not a for loop}
+		$$
+			d_i^{t+1} = \max\Big\{\sigma_i - \frac{\lambda_2}{\rho}\frac{1}{d_i^t + \epsilon}\, ,\, 0\Big\}
+		$$
+		\If{$\max_i |d_i^{t+1} - d_i^t| \leq \delta$}
+		\State Break
+		\EndIf
+		\EndFor
+		\State Compute matricial solution $\overline{L}^{k+1} = U
+			\text{Diag}(d_1^{t+1}, \ldots, d_{\min\{MN, F\}}^{t+1}) V^\top$
+		\State Reshape $\overline{L}^{k+1} \in \mathbb{R}^{MN \times F}$ into
+		$L^{k+1} \in \mathbb{R}^{M\times N\times F}$
+	\end{algorithmic}
 \end{algorithm}
 
 \mypar{Updating $\bm{U}$}
 The problem in $U$ in~\eqref{eq:admm_applied_uvb} can be written as
 \begin{align*}
-  U^{k+1}
-  &=
-  \underset{U}{\arg\min}\,\,\,
-  \lambda_1 \big\|U\big\|_1
-  +
-  \langle\Theta^k, S^{k+1} - U\rangle
-  +
-  \frac{\rho}{2}
-  \|S^{k+1} - U\|_{F}^2
-  \\
-  &=
-  \underset{U}{\arg\min}\,\,\,
-  \frac{\lambda_1}{\rho} \big\|U\big\|_1
-  +
-  \frac{1}{2}
-  \Big\|U - \big(S^{k+1} + \frac{1}{\rho}\Theta^k\big)\Big\|_F^2
-  \\
-  &=
-  \text{prox}_{\frac{\lambda_1}{\rho}\|\cdot\|_1}\big(S^{k+1} +
-  \frac{1}{\rho}\Theta^k\big)\,.
+	U^{k+1}
+	 & =
+	\underset{U}{\arg\min}\,\,\,
+	\lambda_1 \big\|U\big\|_1
+	+
+	\langle\Theta^k, S^{k+1} - U\rangle
+	+
+	\frac{\rho}{2}
+	\|S^{k+1} - U\|_{F}^2
+	\\
+	 & =
+	\underset{U}{\arg\min}\,\,\,
+	\frac{\lambda_1}{\rho} \big\|U\big\|_1
+	+
+	\frac{1}{2}
+	\Big\|U - \big(S^{k+1} + \frac{1}{\rho}\Theta^k\big)\Big\|_F^2
+	\\
+	 & =
+	\text{prox}_{\frac{\lambda_1}{\rho}\|\cdot\|_1}\big(S^{k+1} +
+	\frac{1}{\rho}\Theta^k\big)\,.
 \end{align*}
 The procedure to update $U$ is then quite simple: soft-thresholding all the
 components of $U_a := S^{k+1} + \frac{1}{\rho}\Theta^k$ in parallel. This is
 done in Algorithm~\ref{alg:updateU}.
 \begin{algorithm}
-  \caption{Update of $U$ in~\eqref{eq:admm_applied_uvb}}
-  \label{alg:updateU}
-  \begin{algorithmic}[1]
-  %\small
-    \State Compute $U_a = S^{k+1} + \frac{1}{\rho}\Theta^k$
-    \For{$i, j, l$ in parallel}
-      \State
-      \begin{align*}
-        U_{i j k}^{k+1}
-        =
-        \left\{
-        \begin{array}{ll}
-          (U_a)_{ijl} + \frac{\lambda}{\rho} &,\,\text{if $(U_a)_{ijl} < -\frac{\lambda}{\rho}$}
-          \\[0.2cm]
-          0 &,\,\text{if $\big|(U_a)_{ijl}\big| \leq \frac{\lambda}{\rho}$}
-          \\[0.2cm]
-          (U_a)_{ijl} - \frac{\lambda}{\rho} &,\,\text{if $(U_a)_{ijl} > \frac{\lambda}{\rho}$}
-        \end{array}
-        \right.
-      \end{align*}
-    \EndFor
-  \end{algorithmic}
+	\caption{Update of $U$ in~\eqref{eq:admm_applied_uvb}}
+	\label{alg:updateU}
+	\begin{algorithmic}[1]
+		%\small
+		\State Compute $U_a = S^{k+1} + \frac{1}{\rho}\Theta^k$
+		\For{$i, j, l$ in parallel}
+		\State
+		\begin{align*}
+			U_{i j k}^{k+1}
+			=
+			\left\{
+			\begin{array}{ll}
+				(U_a)_{ijl} + \frac{\lambda}{\rho} & ,\,\text{if $(U_a)_{ijl} < -\frac{\lambda}{\rho}$}
+				\\[0.2cm]
+				0                                  & ,\,\text{if $\big|(U_a)_{ijl}\big| \leq \frac{\lambda}{\rho}$}
+				\\[0.2cm]
+				(U_a)_{ijl} - \frac{\lambda}{\rho} & ,\,\text{if $(U_a)_{ijl} > \frac{\lambda}{\rho}$}
+			\end{array}
+			\right.
+		\end{align*}
+		\EndFor
+	\end{algorithmic}
 \end{algorithm}
 
 \mypar{Updating $\bm{(V, B)}$}
@@ -932,130 +932,130 @@ decoupled, so they must be optimized simultaneously. We notice, however, that
 minimization w.r.t.\ $B$ has a closed-form solution, so we can first minimize
 w.r.t.\ $B$, then w.r.t.\ $V$:
 \begin{align}
-  (V^{k+1}, B^{k+1})
-  &=
-  \underset{V, B}{\arg\min}\,\,\,
-  \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-  +
-  \langle\Gamma^k, S^{k+1} - V\rangle
-  +
-  \langle\Delta^k, B - L^{k+1}\rangle
-  +
-  \langle\Lambda^k, X^{k+1} - B - V\rangle
-  \notag
-  \\
-  &\qquad
-  +
-  \frac{\rho}{2}
-  \|S^{k+1} - V\|_{F}^2
-  +
-  \frac{\rho}{2}
-  \|B - L^{k+1}\|_{F}^2
-  +
-  \frac{\rho}{2}
-  \|X^{k+1} - B - V\|_{F}^2
-  \label{eq:updatevb1}
-  \\
-  &=
-  \underset{V}{\arg\min}\,\,\,
-  \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-  +
-  \frac{\rho}{4}\|V\|_F^2
-  +
-  \langle V, - \frac{1}{2}\Delta^k - \frac{1}{2}\Lambda^k + 2L^{k+1} - 2 X^{k+1} \rangle
-  \notag
-  \\
-  &\qquad
-  +
-  \langle \Gamma^k, S^{k+1} - V \rangle
-  +
-  \frac{\rho}{2}\|S^{k+1} - V\|_F^2
-  \label{eq:updatevb2}
-  \\
-  &=
-  \underset{V}{\arg\min}\,\,\,
-  \frac{2\lambda_3}{3\rho} \big\|\widetilde{V}\big\|_{\star}
-  +
-  \frac{1}{2}
-  \big\|V - V_a\big\|_F^2\,.
-  \label{eq:updatevb3}
+	(V^{k+1}, B^{k+1})
+	 & =
+	\underset{V, B}{\arg\min}\,\,\,
+	\lambda_3 \big\|\widetilde{V}\big\|_{\star}
+	+
+	\langle\Gamma^k, S^{k+1} - V\rangle
+	+
+	\langle\Delta^k, B - L^{k+1}\rangle
+	+
+	\langle\Lambda^k, X^{k+1} - B - V\rangle
+	\notag
+	\\
+	 & \qquad
+	+
+	\frac{\rho}{2}
+	\|S^{k+1} - V\|_{F}^2
+	+
+	\frac{\rho}{2}
+	\|B - L^{k+1}\|_{F}^2
+	+
+	\frac{\rho}{2}
+	\|X^{k+1} - B - V\|_{F}^2
+	\label{eq:updatevb1}
+	\\
+	 & =
+	\underset{V}{\arg\min}\,\,\,
+	\lambda_3 \big\|\widetilde{V}\big\|_{\star}
+	+
+	\frac{\rho}{4}\|V\|_F^2
+	+
+	\langle V, - \frac{1}{2}\Delta^k - \frac{1}{2}\Lambda^k + 2L^{k+1} - 2 X^{k+1} \rangle
+	\notag
+	\\
+	 & \qquad
+	+
+	\langle \Gamma^k, S^{k+1} - V \rangle
+	+
+	\frac{\rho}{2}\|S^{k+1} - V\|_F^2
+	\label{eq:updatevb2}
+	\\
+	 & =
+	\underset{V}{\arg\min}\,\,\,
+	\frac{2\lambda_3}{3\rho} \big\|\widetilde{V}\big\|_{\star}
+	+
+	\frac{1}{2}
+	\big\|V - V_a\big\|_F^2\,.
+	\label{eq:updatevb3}
 \end{align}
 From~\eqref{eq:updatevb1} to~\eqref{eq:updatevb2}, we differentiated w.r.t.\
 $B$ and equated it zero, giving a closed-form expression for updating it:
 \begin{align*}
-  B^{k+1}
-  &=
-  \frac{1}{2}
-  \Big[
-  L^{k+1} + X^{k+1} - V^{k+1} +\frac{1}{\rho}\Lambda^k - \frac{1}{\rho}\Delta^k
-  \Big]\,.
+	B^{k+1}
+	 & =
+	\frac{1}{2}
+	\Big[
+		L^{k+1} + X^{k+1} - V^{k+1} +\frac{1}{\rho}\Lambda^k - \frac{1}{\rho}\Delta^k
+		\Big]\,.
 \end{align*}
 We then replaced the expression for $B$ in the objective function.
 From~\eqref{eq:updatevb2} to~\eqref{eq:updatevb3}, we developed the squares,
 ignored terms that do not depend on $V$, rescaled the objective function, and
 defined
 \begin{align*}
-  V_a := 
-  \frac{1}{3}
-  \bigg[
-    X^{k+1} - L^{k+1}
-    +
-    2S^{k+1}
-    +
-    \frac{1}{\rho}(\Delta^k + \Lambda^k + 2\Gamma^{k})
-  \bigg]\,.
+	V_a :=
+	\frac{1}{3}
+	\bigg[
+		X^{k+1} - L^{k+1}
+		+
+		2S^{k+1}
+		+
+		\frac{1}{\rho}(\Delta^k + \Lambda^k + 2\Gamma^{k})
+		\bigg]\,.
 \end{align*}
 Notice~\eqref{eq:updatevb3} has exactly the same format as the update of $L$
 in~\eqref{eq:probL1}. The reshaping of the tensors, however, is different.
 Apart from this, the procedure is exactly like the update of $L$ in
 Algorithm~\ref{alg:updateL} and is described in Algorithm~\ref{alg:updateV}.
 \begin{algorithm}
-  \caption{Update of $V$ and $B$ in~\eqref{eq:admm_applied_uvb}}
-  \label{alg:updateV}
-  \begin{algorithmic}[1]
-  %\small
-  \algrenewcommand\algorithmicrequire{\textbf{Initialization:}}
-  \Require Stopping tolerance $\delta > 0$ (e.g., $10^{-3}$), stability number $\epsilon > 0$ (e.g., $10^{-3}$), maximum number of
-  reweighting iterations $T > 0$ (e.g., $50$), parameters to compute the
-  randomized SVD ($\ell$ and a small tolerance), patch size $P$.
-  \State Compute 
-  $ V_a = 
-  \frac{1}{3}
-  \Big[
-    X^{k+1} - L^{k+1}
-    +
-    2S^{k+1}
-    +
-  \frac{1}{\rho}(\Delta^k + \Lambda^k + 2\Gamma^{k})\Big]
-    \in \mathbb{R}^{M\times N\times F}$
-  \State Reshape $V_a$ into $\widetilde{V}_a \in \mathbb{R}^{P \times L}$ by
-  extracting $L$ patches of size $\sqrt{P} \times \sqrt{P}$ from $V_a$ and vectorizing
-  them into the columns of $\widetilde{V}_a$
-  \Comment{See comment about sparsity}
-  \label{subAlg:updateVPatchExt}
-  \State Compute SVD $\widetilde{V}_a = U \Sigma V^\top$ with randomized
-  algorithm
-  \Comment{Do not confuse $U, V$ with $U^k, V^k$}
-  \State Initialize $d_i = \sigma_i$, for $i = 1, \ldots, \min\{P, L\}$, where
-  $\sigma_i$ is the $i$th diagonal entry of $\Sigma$.
-  \For{$t=1, \ldots, T$}
-    \State Compute, for all $i = 1, \ldots, \min\{P, L\}$, 
-    \Comment{Use vector form, not a for loop}
-    $$
-    d_i^{t+1} = \max\Big\{\sigma_i - \frac{2\lambda_3}{3 \rho}\frac{1}{d_i^t + \epsilon}\, ,\, 0\Big\}
-    $$
-    \If{$\max_i |d_i^{t+1} - d_i^t| \leq \delta$}
-      \State Break
-    \EndIf
-  \EndFor
-  \State Compute matricial solution $\widetilde{V}^{k+1} = U
-  \text{Diag}(d_1^{t+1}, \ldots, d_{\min\{P, L\}}^{t+1}) V^\top$
-  \State Reshape $\widetilde{V}^{k+1} \in \mathbb{R}^{P \times L}$ into
-  $V^{k+1} \in \mathbb{R}^{M\times N\times F}$
-  \label{subAlg:updateVReshapeBack}
-  \State Compute 
-  $B^{k+1} = \frac{1}{2}\Big[L^{k+1} + X^{k+1} - V^{k+1} +\frac{1}{\rho}\Lambda^k - \frac{1}{\rho}\Delta^k\Big]$
-  \end{algorithmic}
+	\caption{Update of $V$ and $B$ in~\eqref{eq:admm_applied_uvb}}
+	\label{alg:updateV}
+	\begin{algorithmic}[1]
+		%\small
+		\algrenewcommand\algorithmicrequire{\textbf{Initialization:}}
+		\Require Stopping tolerance $\delta > 0$ (e.g., $10^{-3}$), stability number $\epsilon > 0$ (e.g., $10^{-3}$), maximum number of
+		reweighting iterations $T > 0$ (e.g., $50$), parameters to compute the
+		randomized SVD ($\ell$ and a small tolerance), patch size $P$.
+		\State Compute
+		$ V_a =
+			\frac{1}{3}
+			\Big[
+				X^{k+1} - L^{k+1}
+				+
+				2S^{k+1}
+				+
+				\frac{1}{\rho}(\Delta^k + \Lambda^k + 2\Gamma^{k})\Big]
+			\in \mathbb{R}^{M\times N\times F}$
+		\State Reshape $V_a$ into $\widetilde{V}_a \in \mathbb{R}^{P \times L}$ by
+		extracting $L$ patches of size $\sqrt{P} \times \sqrt{P}$ from $V_a$ and vectorizing
+		them into the columns of $\widetilde{V}_a$
+		\Comment{See comment about sparsity}
+		\label{subAlg:updateVPatchExt}
+		\State Compute SVD $\widetilde{V}_a = U \Sigma V^\top$ with randomized
+		algorithm
+		\Comment{Do not confuse $U, V$ with $U^k, V^k$}
+		\State Initialize $d_i = \sigma_i$, for $i = 1, \ldots, \min\{P, L\}$, where
+		$\sigma_i$ is the $i$th diagonal entry of $\Sigma$.
+		\For{$t=1, \ldots, T$}
+		\State Compute, for all $i = 1, \ldots, \min\{P, L\}$,
+		\Comment{Use vector form, not a for loop}
+		$$
+			d_i^{t+1} = \max\Big\{\sigma_i - \frac{2\lambda_3}{3 \rho}\frac{1}{d_i^t + \epsilon}\, ,\, 0\Big\}
+		$$
+		\If{$\max_i |d_i^{t+1} - d_i^t| \leq \delta$}
+		\State Break
+		\EndIf
+		\EndFor
+		\State Compute matricial solution $\widetilde{V}^{k+1} = U
+			\text{Diag}(d_1^{t+1}, \ldots, d_{\min\{P, L\}}^{t+1}) V^\top$
+		\State Reshape $\widetilde{V}^{k+1} \in \mathbb{R}^{P \times L}$ into
+		$V^{k+1} \in \mathbb{R}^{M\times N\times F}$
+		\label{subAlg:updateVReshapeBack}
+		\State Compute
+		$B^{k+1} = \frac{1}{2}\Big[L^{k+1} + X^{k+1} - V^{k+1} +\frac{1}{\rho}\Lambda^k - \frac{1}{\rho}\Delta^k\Big]$
+	\end{algorithmic}
 \end{algorithm}
 
 This update is likely to be the most time-consuming step of the entire
@@ -1064,13 +1064,13 @@ of step \ref{subAlg:updateVPatchExt},
 however, is that $S^{k+1}$ is likely to be sparse. This means $V_a$ is also
 likely to be sparse. So the patch extraction in step
 \ref{subAlg:updateVPatchExt} \textbf{\textit{should consider patches containing only nonzero
-entries}}. Note:
+		entries}}. Note:
 \begin{itemize}
-  \item We need to keep track of the location of the patches to be able to
-    execute step~\ref{subAlg:updateVReshapeBack}.
+	\item We need to keep track of the location of the patches to be able to
+	      execute step~\ref{subAlg:updateVReshapeBack}.
 
-  \item Algorithms~\ref{alg:updateL} and~\ref{alg:updateV} have similar code,
-    so make sure to reuse it.
+	\item Algorithms~\ref{alg:updateL} and~\ref{alg:updateV} have similar code,
+	      so make sure to reuse it.
 \end{itemize}
 
 \mypar{Updating $\bm{\Theta}, \bm{\Gamma}$, $\bm{\Delta}$, and $\bm{\Lambda}$}
@@ -1078,27 +1078,27 @@ The updates of the dual variables
 in~\eqref{eq:admm_applied_lagrangetheta}-\eqref{eq:admm_applied_lagrangelambda}
 are trivial. We can, however, make a small simplification: notice how all
 the dual variables in the above problems appear always multiplied by $1/\rho$.
-We can therefore define 
+We can therefore define
 \begin{align*}
-  {\Theta'}^k &= \frac{1}{\rho}\Theta^k
-  \\
-  {\Gamma'}^k &= \frac{1}{\rho}\Gamma^k
-  \\
-  {\Delta'}^k &= \frac{1}{\rho}\Delta^k
-  \\
-  {\Lambda'}^k &= \frac{1}{\rho}\Lambda^k\,.
+	{\Theta'}^k  & = \frac{1}{\rho}\Theta^k
+	\\
+	{\Gamma'}^k  & = \frac{1}{\rho}\Gamma^k
+	\\
+	{\Delta'}^k  & = \frac{1}{\rho}\Delta^k
+	\\
+	{\Lambda'}^k & = \frac{1}{\rho}\Lambda^k\,.
 \end{align*}
 Dividing both sides of
 equations~\eqref{eq:admm_applied_lagrangetheta}-\eqref{eq:admm_applied_lagrangedelta}
 by $\rho$, we obtain the updates in terms of these new variables:
 \begin{align*}
-  {\Theta'}^{k+1} &= {\Theta'}^k +  S^{k+1} - U^{k+1}
-  \\
-  {\Gamma'}^{k+1} &= {\Gamma'}^k +  S^{k+1} - V^{k+1}
-  \\
-  {\Delta'}^{k+1} &= {\Delta'}^k + B^{k+1} - L^{k+1}
-  \\
-  {\Lambda'}^{k+1} &= {\Lambda'}^k + X^{k+1} - B^{k+1} - V^{k+1}\,.
+	{\Theta'}^{k+1}  & = {\Theta'}^k +  S^{k+1} - U^{k+1}
+	\\
+	{\Gamma'}^{k+1}  & = {\Gamma'}^k +  S^{k+1} - V^{k+1}
+	\\
+	{\Delta'}^{k+1}  & = {\Delta'}^k + B^{k+1} - L^{k+1}
+	\\
+	{\Lambda'}^{k+1} & = {\Lambda'}^k + X^{k+1} - B^{k+1} - V^{k+1}\,.
 \end{align*}
 This is equivalent to ADMM in scaled form~\cite[\S3.1.1]{Boyd11-ADMM}.
 
@@ -1108,30 +1108,30 @@ terms of the primal and dual residuals~\cite[\S3.3]{Boyd11-ADMM} and adjust $\rh
 iteration~\cite[\S3.4.1]{Boyd11-ADMM}. The primal residual at iteration $k$
 should be
 \begin{align*}
-  r^{k+1}
-  =
-  \begin{bmatrix}
-    S^{k+1} - U^{k+1}
-    \\
-    S^{k+1} - V^{k+1}
-    \\
-    B^{k+1} - L^{k+1}
-    \\
-    X^{k+1} - B^{k+1} - V^{k+1}
-  \end{bmatrix}\,,
+	r^{k+1}
+	=
+	\begin{bmatrix}
+		S^{k+1} - U^{k+1}
+		\\
+		S^{k+1} - V^{k+1}
+		\\
+		B^{k+1} - L^{k+1}
+		\\
+		X^{k+1} - B^{k+1} - V^{k+1}
+	\end{bmatrix}\,,
 \end{align*}
 and the dual residual should be
 \begin{align*}
-  s^{k+1}
-  =
-  -\rho
-  \begin{bmatrix}
-    V^{k+1} - V^k + B^{k+1} - B^k
-    \\
-    U^{k+1} - U^k + V^{k+1} - V^k
-    \\
-    B^{k+1} - B^k
-  \end{bmatrix}\,.
+	s^{k+1}
+	=
+	-\rho
+	\begin{bmatrix}
+		V^{k+1} - V^k + B^{k+1} - B^k
+		\\
+		U^{k+1} - U^k + V^{k+1} - V^k
+		\\
+		B^{k+1} - B^k
+	\end{bmatrix}\,.
 \end{align*}
 See
 \href{https://github.com/marijavella/sr-via-CNNs-and-tvtv/blob/master/code/TVTV_Solver_CPU.m}{Github}
@@ -1140,62 +1140,62 @@ for an example of the implementation of ADMM to solve a simpler problem.
 \mypar{Convergence}
 ADMM applies to problems with the format~\cite{Boyd11-ADMM}
 \begin{align}
-  \begin{array}[t]{ll}
-  \underset{x, z}{\text{minimize}}
-  &
-  f(x) + g(z)
-  \\
-  \text{subject to}
-  &
-  Ax + Bz = 0\,.
-  \end{array}
-  \label{eq:admm}
+	\begin{array}[t]{ll}
+		\underset{x, z}{\text{minimize}}
+		 &
+		f(x) + g(z)
+		\\
+		\text{subject to}
+		 &
+		Ax + Bz = 0\,.
+	\end{array}
+	\label{eq:admm}
 \end{align}
 It converges when $f$ and $g$ are convex and real valued,
 problem~\eqref{eq:admm} is solvable, and the matrices $A$ and $B$ have full
 column rank~\cite{Mota11-ADMMProof}. Problem~\eqref{eq:reformulation} can be
 written in the same format as~\eqref{eq:admm}:
 \begin{align}
-  \label{eq:reformulation2}
-  \begin{array}[t]{cl}
-    \underset{(X, S, L), (U, V, B)}{\text{minimize}}
-    &
-    \Big(
-    \frac{1}{2}
-    \big\|Y - \mathcal{H}(X)\big\|_F^2
-    +
-    \lambda_2 \big\|\overline{L}\big\|_{\star}
-    \Big)
-    +
-    \Big(
-    \lambda_1 \big\|U\big\|_1
-    +
-    \lambda_3 \big\|\widetilde{V}\big\|_{\star}
-    \Big)
-    \\
-    \text{subject to}
-    &
-    \begin{bmatrix*}[r]
-      0 & I & 0 \\
-      0 & I & 0 \\
-      0 & 0 & -I \\
-      I & 0 & 0
-    \end{bmatrix*}
-    \begin{bmatrix}
-      x\\ s\\ l
-    \end{bmatrix}
-    +
-    \begin{bmatrix*}[r]
-      -I & 0 & 0 \\
-      0 & -I & 0 \\
-      0 & 0 & I \\
-      0 & -I & -I 
-    \end{bmatrix*}
-    \begin{bmatrix}
-      u \\ v \\ b
-    \end{bmatrix}
-    = 0\,,
-  \end{array}
+	\label{eq:reformulation2}
+	\begin{array}[t]{cl}
+		\underset{(X, S, L), (U, V, B)}{\text{minimize}}
+		 &
+		\Big(
+		\frac{\lambda_0}{2}
+		\big\|Y - \mathcal{H}(X)\big\|_F^2
+		+
+		\lambda_2 \big\|\overline{L}\big\|_{\star}
+		\Big)
+		+
+		\Big(
+		\lambda_1 \big\|U\big\|_1
+		+
+		\lambda_3 \big\|\widetilde{V}\big\|_{\star}
+		\Big)
+		\\
+		\text{subject to}
+		 &
+		\begin{bmatrix*}[r]
+			0 & I & 0 \\
+			0 & I & 0 \\
+			0 & 0 & -I \\
+			I & 0 & 0
+		\end{bmatrix*}
+		\begin{bmatrix}
+			x \\ s\\ l
+		\end{bmatrix}
+		+
+		\begin{bmatrix*}[r]
+			-I & 0 & 0 \\
+			0 & -I & 0 \\
+			0 & 0 & I \\
+			0 & -I & -I
+		\end{bmatrix*}
+		\begin{bmatrix}
+			u \\ v \\ b
+		\end{bmatrix}
+		= 0\,,
+	\end{array}
 \end{align}
 where lowercase variables are vectorizations of the corresponding uppercase
 variables, and $I$ and $0$ are identity and zero matrices of appropriate

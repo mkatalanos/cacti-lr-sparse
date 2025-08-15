@@ -9,8 +9,9 @@ from numpy.typing import NDArray
 from scipy import io
 
 
-def generate_mask(shape, block_rate=0.5):
+def generate_mask(shape, block_rate=0.5, seed=None):
     shape_flat = np.prod(shape)
+    np.random.seed(seed)
     mask = np.random.randint(0, 1000, int(shape_flat))
     mask[mask < block_rate * 1000] = 0
     mask[mask != 0] = 1
@@ -38,7 +39,7 @@ def init(dataset: str, sparsity=0.5):
     #     np.isclose(0, y - meas[:, :, 0])
     # ), "Measured signal doesn't match dataset"
 
-    return x, y, mask
+    return x, y, mask.transpose(2, 0, 1)
 
 
 # @njit
@@ -47,9 +48,9 @@ def phi(x: NDArray, mask: NDArray):
     Applies forward transform
     x,mask
     """
-    H, W, T = mask.shape
+    T, H, W = mask.shape
     # x = x.reshape(H, W, -1)
-    y = np.multiply(mask, x).sum(axis=2).reshape(-1)
+    y = np.multiply(mask, x).sum(axis=0)
     return y
 
 
@@ -58,10 +59,22 @@ def phit(y, mask):
     Applies the adjoint of the transform
     y,mask
     """
-    H, W, T = mask.shape
+    T, H, W = mask.shape
     y = y.reshape(H, W)
-    x = np.multiply(mask, y[:, :, np.newaxis])
-    return x.reshape(-1)
+    x = np.multiply(mask, y[np.newaxis, :, :])
+    return x
+
+
+def pseudoinverse(y, mask):
+    """
+    Applies the pseudoinverse of transform
+    y, mask
+    """
+    mff = np.multiply(mask, mask).sum(axis=0).astype(np.float64)
+    mff[mff == 0] = 1e-8
+    phiphit_inv = np.divide(y, mff)
+    inverted = np.multiply(mask, phiphit_inv[np.newaxis, :, :])
+    return inverted
 
 
 def generate_phi(
@@ -124,7 +137,7 @@ def apply_cacti_mask_single(
     x_trunc = x[:, :, :T]
     y = np.multiply(x_trunc, mask).sum(axis=2, dtype=np.uint16)
 
-    return x_trunc, y
+    return x_trunc.transpose(2, 0, 1), y
 
 
 def A(x: cp.Variable, mask: NDArray[np.uint8]) -> cp.Expression:

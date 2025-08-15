@@ -1,5 +1,4 @@
 from typing import List, Tuple
-from utils.physics import init
 
 from numba import njit
 from numpy.typing import NDArray
@@ -9,70 +8,52 @@ from sklearn.cluster import HDBSCAN
 from tqdm import tqdm
 import numpy as np
 
-from utils.visualize import visualize_cube, visualize_patches, visualize_clusters
 
-# def extract_sparse_patches(X: NDArray[np.uint8], patch_size: int):
-# Implementation using vstack
-#     M, N, F = X.shape
-#     p = patch_size
-#     P = p * p
-#
-#     stride = p
-#
-#     patches = []
-#     locations = []
-#
-#     for f in range(F):
-#         frame = X[:, :, f]
-#
-#         # Extract patches
-#         for i in range(0, M-p+1, stride):
-#             for j in range(0, N-p+1, stride):
-#                 patch = frame[i:i+p, j:j+p]
-#             # Check if non-empty
-#             # Reshape and add if needed
-#                 patches.append(patch.flatten())
-#                 locations.append((i, j))
-#
-#     patches = np.vstack(patches).T
-#
-#     return patches, locations
-
-
-# @njit
+@njit(cache=True, fastmath=True)
 def extract_sparse_patches(
     X: NDArray[np.uint8], patch_size: int, stride_ratio: int = 1
 ):
+    """
+    Extract sparse patches framewise
+    Args:
+        X: NDArray
+        patch_size: int
+        stride_ratio: int = 1
+
+    Returns:
+        patchmat: NDArray
+        locations: List of locations (i,j,k)
+    """
     # Implementation that uses preallocated memory
-    M, N, F = X.shape
+    F, M, N = X.shape
+
     p = patch_size
     P = p * p
 
     L = 0
-    stride = p // stride_ratio
+    stride = p // stride_ratio if stride_ratio > 0 and stride_ratio < patch_size else 1
 
     patches = []
     locations = []
 
     for f in range(F):
-        frame = X[:, :, f]
+        frame = X[f, :, :]
 
         # Extract patches
         for i in range(0, M - p + 1, stride):
             for j in range(0, N - p + 1, stride):
-                patch = frame[i : i + p, j : j + p]
+                patch = frame[i: i + p, j: j + p]
                 # Check if non-empty
                 if np.any(patch):
                     # Reshape and add if needed
                     patches.append(patch.flatten())
-                    locations.append((i, j, f))
+                    locations.append((f, i, j))
                     L += 1
 
     patches_mat = np.zeros((P, L))
     for i, patch in enumerate(patches):
         patches_mat[:, i] = patch
     # patches = np.vstack(patches).T
-
     return patches_mat, locations
 
 
@@ -97,24 +78,49 @@ def extract_patches(X: NDArray[np.uint8], patch_size: int) -> NDArray[np.uint8]:
     return X_tilde
 
 
+@njit(cache=True, fastmath=True)
 def reconstruct_sparse_patches(
     X_tilde, locations: List[Tuple[int, int, int]], shape: Tuple[int, int, int]
 ):
-    M, N, F = shape
+    """
+    Reconstruct signal from patches via averaging
+    Args:
+        X_tilde: NDArray
+        locations: List of locations (i,j,k)
+        shape: A tuple of dimensions (F,M,N)
+
+    Returns:
+        X: NDArray
+    """
+    F, M, N = shape
     P, L = X_tilde.shape
     p = int(np.sqrt(P))
-    # Assuming non-overlapping patches
-    X = np.zeros(shape)
 
-    for patch, (i, j, f) in zip(X_tilde.T, locations):
-        X[i : i + p, j : j + p, f] = patch.reshape(p, p)
+    sums = np.zeros(shape)
+    counts = np.zeros(shape, dtype=np.int32)
+
+    for patch, (f, i, j) in zip(X_tilde.T, locations):
+        # NUMBA only supports contigous memory reshapes
+        patch = np.ascontiguousarray(patch)
+        sums[f, i: i + p, j: j + p] += patch.reshape(p, p)
+        counts[f, i: i + p, j: j + p] += 1
+
+    # Workaround because NUMBA doesn't support multi-dimensional indeces
+    counts = counts.flatten()
+    sums = sums.flatten()
+
+    updated = counts > 0
+    X = np.zeros(F*M*N)
+    X[updated] = sums[updated] / counts[updated]
+
+    X = X.reshape(shape)
 
     return X
 
 
 def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
     p = patch_size
-    M, N, F = shape
+    F, M, N = shape
     P, L = X_tilde.shape
 
     assert P == p * p, "Patch size mismatch."
@@ -122,7 +128,7 @@ def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
     num_patches_per_frame = (M // p) * (N // p)
     assert L == num_patches_per_frame * F, "L does not match expected patch count."
 
-    X_rec = np.zeros((M, N, F), dtype=np.uint8)
+    X_rec = np.zeros((F, M, N), dtype=np.uint8)
 
     for f in range(F):
         # Get patches for frame f
@@ -137,7 +143,7 @@ def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
         idx = 0
         for i in range(0, M, p):
             for j in range(0, N, p):
-                X_rec[i : i + p, j : j + p, f] = patches_reshaped[idx]
+                X_rec[f, i: i + p, j: j + p] = patches_reshaped[idx].T
                 idx += 1
 
     return X_rec
@@ -203,11 +209,17 @@ def cluster_patches(
 
 
 if __name__ == "__main__":
+    from utils.visualize import visualize_cube, visualize_patches, visualize_clusters
+    from utils.dataloader import load_mat
+
     M, N, F = 256, 256, 8
+
     # X = np.random.randint(0, 256, (M, N, F))
     # X_Tilde, locations = extract_sparse_patches(X, 16)
 
     # x = np.array(Image.open("datasets/bear.png"))[:, :, :3]
-    x, y, mask = init("./datasets/traffic48_cacti.mat")
-    patches, locs = extract_sparse_patches(x, 64)
+    x, mask, meas = load_mat(
+        "./datasets/traffic48_cacti.mat")
+    patches, locs = extract_sparse_patches(x, 64, 8)
+    # X_rec = reconstruct_sparse_patches(patches, locs, x.shape)
     # clusters = cluster_patches(patches, ssim=False)
