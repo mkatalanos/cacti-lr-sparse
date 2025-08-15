@@ -67,62 +67,19 @@ def rpca_admm(
     return L, S, rho
 
 
-def t_svt3(Y, tau):
-    """
-    Tensor Singular Value Thresholding (t-SVT) over the third dimension (axis=2).
-
-    Parameters:
-        Y   : numpy.ndarray, shape (n1, n2, n3)
-        tau : float, threshold parameter
-
-    Returns:
-        D_tau_Y : numpy.ndarray, shape (n1, n2, n3)
-    """
-    n1, n2, n3 = Y.shape
-
-    # Step 1: FFT along the 3rd dimension
-    Y_fft = np.fft.fft(Y, axis=2)
-    W_fft = np.zeros_like(Y_fft, dtype=np.complex128)
-
-    # Number of unique frequency slices we need to process
-    # For real inputs, frequencies k = 0 .. floor(n3/2) are independent
-    half_n3 = n3 // 2 + 1
-
-    # Step 2: SVT on each frontal slice in the Fourier domain
-    for k in range(half_n3):
-        # Extract the k-th frontal slice (matrix of shape (n1, n2))
-        Yk = Y_fft[:, :, k]
-        # SVD
-        U, S, Vh = np.linalg.svd(Yk, full_matrices=False)
-        # Soft-threshold singular values
-        S_thresh = np.maximum(S - tau, 0)
-        # Reconstruct
-        W_fft[:, :, k] = U @ np.diag(S_thresh) @ Vh
-
-    # Step 3: Fill remaining slices by conjugate symmetry
-    # for real tensors: F[k] = conj(F[n3 - k]) for k > floor(n3/2)
-    for k in range(half_n3, n3):
-        W_fft[:, :, k] = np.conj(W_fft[:, :, n3 - k])
-
-    # Step 4: Inverse FFT along the 3rd dimension, keep real part
-    D_tau_Y = np.fft.ifft(W_fft, axis=2).real
-
-    return D_tau_Y
-
 
 @njit(cache=True, fastmath=True)
 def t_svt(Y, tau):
     """
-    Tensor Singular Value Thresholding (t-SVT) over the first dimension (axis=0)
-
-    Parameters:
-        Y   : numpy.ndarray, shape (n1, n2, n3)
-        tau : float, threshold parameter
-
+    Tensor singular value thresholding along the 1st dimension (axis=0)
+    Args:
+        Y: NDArray
+        tau: float, thresholding parameter
     Returns:
-        D_tau_Y : numpy.ndarray, shape (n1, n2, n3)
+        D_tau_Y: NDArray
     """
     n1, n2, n3 = Y.shape
+
     # Step 1: FFT along the 1st dimension (axis=0)
     Y_fft = np.fft.fft(Y, axis=0)
     W_fft = np.zeros_like(Y_fft, dtype=np.complex128)

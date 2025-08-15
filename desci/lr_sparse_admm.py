@@ -5,7 +5,7 @@ import numpy as np
 from numpy.typing import NDArray
 from utils.patches import extract_sparse_patches, reconstruct_sparse_patches
 from utils.dataloader import load_video, load_mat
-from utils.physics import phi, init, generate_mask, pseudoinverse
+from utils.physics import phi, generate_mask, pseudoinverse
 from utils.visualize import visualize_cube
 from skimage.metrics import peak_signal_noise_ratio
 
@@ -50,16 +50,15 @@ def update_X(Y, B, V, Lambda, mask, rho, lambda_0):
 @njit(cache=True, fastmath=True)
 def t_svt(Y, tau):
     """
-    Tensor Singular Value Thresholding (t-SVT) over the first dimension (axis=0)
-
-    Parameters:
-        Y   : numpy.ndarray, shape (n1, n2, n3)
-        tau : float, threshold parameter
-
+    Tensor singular value thresholding along the 1st dimension (axis=0)
+    Args:
+        Y: NDArray
+        tau: float, thresholding parameter
     Returns:
-        D_tau_Y : numpy.ndarray, shape (n1, n2, n3)
+        D_tau_Y: NDArray
     """
     n1, n2, n3 = Y.shape
+
     # Step 1: FFT along the 1st dimension (axis=0)
     Y_fft = np.fft.fft(Y, axis=0)
     W_fft = np.zeros_like(Y_fft, dtype=np.complex128)
@@ -87,7 +86,7 @@ def update_L_tsvd(
     B, Delta, rho, lambda_2, mask,
 ):
     """
-    Uses T-SVD for background
+    Alternative update for L that uses T-SVD
     """
 
     F, M, N = mask.shape
@@ -100,9 +99,6 @@ def update_L_tsvd(
 
 @njit(cache=True, fastmath=True)
 def update_L(B, Delta, rho, lambda_2, mask):
-    """
-    L <- B
-    """
     F, M, N = mask.shape
     La = B + Delta / rho
     La_bar = La.reshape(F, M * N)
@@ -200,10 +196,7 @@ def ADMM(
     Y = y.reshape((M, N)).astype(np.float64)
 
     U = np.zeros_like(mask, dtype=np.float64)
-    # U = np.repeat(Y[:, :, np.newaxis], F, axis=2)
     B = pseudoinverse(Y, mask)
-    # B = np.repeat(Y[:, :, np.newaxis]/F, F, axis=2)
-    # B = np.zeros_like(mask, dtype=np.float64)
     V = np.zeros_like(mask, dtype=np.float64)
 
     U_old = U.copy()
@@ -214,21 +207,19 @@ def ADMM(
     Delta = np.random.randn(*mask.shape)
     Gamma = np.random.randn(*mask.shape)
     Lambda = np.random.randn(*mask.shape)
-    # Delta = np.zeros_like(mask, dtype=np.float64)
-    # Gamma = np.zeros_like(mask, dtype=np.float64)
-    # Lambda = np.zeros_like(mask, dtype=np.float64)
 
     crits = []
     try:
         for it in range(MAX_IT):
 
-            # if verbose:
             print(f"Starting iteration {it} with rho: {float(rho):.2f}")
+
             # Can be done in parallel
             X = update_X(Y, B, V, Lambda, mask, rho, lambda_0)
             S = update_S(U, V, Theta, Gamma, rho)
             L = update_L(B, Delta, rho, lambda_2, mask)
             # L = update_L_tsvd(B, Delta, rho, lambda_2, mask)
+
             # Wait here if parallelizing
 
             # Can be done in parallel

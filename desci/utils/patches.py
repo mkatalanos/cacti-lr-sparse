@@ -82,6 +82,16 @@ def extract_patches(X: NDArray[np.uint8], patch_size: int) -> NDArray[np.uint8]:
 def reconstruct_sparse_patches(
     X_tilde, locations: List[Tuple[int, int, int]], shape: Tuple[int, int, int]
 ):
+    """
+    Reconstruct signal from patches via averaging
+    Args:
+        X_tilde: NDArray
+        locations: List of locations (i,j,k)
+        shape: A tuple of dimensions (F,M,N)
+
+    Returns:
+        X: NDArray
+    """
     F, M, N = shape
     P, L = X_tilde.shape
     p = int(np.sqrt(P))
