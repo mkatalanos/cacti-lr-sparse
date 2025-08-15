@@ -3,7 +3,7 @@ from utils.dataloader import load_video, load_mat
 from numba import njit
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def singular_value_thresholding(X, tau):
     U, S, Vt = np.linalg.svd(X, full_matrices=False)
     S_thresh = np.maximum(S - tau, 0)
@@ -15,7 +15,7 @@ def rank1_projection(X):
     return S[0] * np.outer(U[:, 0], Vt[0, :])
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def soft_thresholding(X, tau):
     return np.sign(X) * np.maximum(np.abs(X) - tau, 0)
 
@@ -110,7 +110,7 @@ def t_svt3(Y, tau):
     return D_tau_Y
 
 
-@njit(cache=True)
+@njit(cache=True, fastmath=True)
 def t_svt(Y, tau):
     """
     Tensor Singular Value Thresholding (t-SVT) over the first dimension (axis=0)
@@ -194,16 +194,23 @@ def tensor_rpca_admm(
 
 if __name__ == "__main__":
     from utils.visualize import visualize_cube
+    from utils.physics import generate_mask, phi, phit, pseudoinverse
 
-    X = load_video("./datasets/video/casia_angleview_p01_jump_a1.mp4")[:40]
+    X = load_video("./datasets/video/casia_angleview_p01_jump_a1.mp4")[30:50]
 
     F, M, N = X.shape
 
-    L, S, rho = tensor_rpca_admm(X, lamb=1/np.sqrt(M*N), rho=0.1, verbose=True)
+    mask = generate_mask(X.shape, 0.5)
+    y = phi(X, mask)
+
+    # backprojected = phit(y, mask)
+    # inverse = pseudoinverse(y, mask)
+
+    L, S, rho = tensor_rpca_admm(X, lamb=0.01, rho=0.1, verbose=True)
     print(np.linalg.norm(S.flatten(), 1))
     visualize_cube(L)
     visualize_cube(S)
-
+    #
     # x_bar = x.reshape(F, M * N)
     #
     # L, S, rho = rpca_admm(x_bar, lamb=1e-5, rho=10, verbose=True)
