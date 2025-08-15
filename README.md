@@ -1,19 +1,14 @@
 - **Title:** Snapshot Compressive Imaging with Foreground-Background Separation
 
 # Main idea
+
 **Message/hypothesis:** Assuming that a snapshot image can be decomposed into background +
-  foreground, such that 
-  1. background sequence is low-rank;
-  2. the foreground is sparse and has patch similarity
-  enables reconstructing sequences with higher quality and faster than DeSCI
-  and is competitive with PnP approaches.
+foreground, such that
 
-## Documents
-
-- This [document](admm-lr-plus-sparse/admm-lr-plus-sparse.pdf) formulates the
-  reconstruction problem, applies ADMM to solve it, and details each step.
-- `admm-lr-plus-sparse-old/` and `z-admm-nolonger-relevant/` contain
-formulations that were not used in the project.
+1. background sequence is low-rank;
+2. the foreground is sparse and has patch similarity
+   enables reconstructing sequences with higher quality and faster than DeSCI
+   and is competitive with PnP approaches.
 
 # Code Release
 
@@ -53,7 +48,8 @@ algorithm.
 
 `utils/`: This folder contains multiple utility files including code about patch
 forming, physics, dataloaders, as well as experimental features (mainly related
-to blockmatching) that were not mentioned in the report.
+to blockmatching) that were not mentioned in the report. Also contains code that
+was used for making visualizations of signals in the report.
 
 `tests/`: Contains the unit tests written, as well as the scripts we used for
 checking that the updates of the algorithm were correct.
@@ -62,7 +58,11 @@ checking that the updates of the algorithm were correct.
 foreground with RPCA. This is the code used for generating some figures of the
 report.
 
-`rpca_datafidelity.py`: This file includes the code for an experiment only mentioned in the future work part of the report, where a robust PCA + data fidelity term problem was solved with ADMM. When tweaking lamb0,lamb1,lamb2 it can achieve very similar reconstruction performance, even faster than our main method.
+`rpca_plus_datafidelity.py`: This file includes the code for an experiment only
+mentioned in the future work part of the report, where a robust PCA + data
+fidelity term problem was solved with ADMM. When tweaking lamb0,lamb1,lamb2 it
+can achieve very similar reconstruction performance, even faster than our main
+method.
 
 `run_lowpriority.sh`: Makes use of SLURM job arrays to perform a grid search
 using params.txt. You can tweak to manually add extra flags. Uses the
@@ -72,15 +72,14 @@ using params.txt. You can tweak to manually add extra flags. Uses the
 You can easily generate that through a list comprehension. Configure based on
 help from `automation.py`
 
-
 ## Matlab-eval
 
 `matlabgen.py`: Is used to generate multiple config files to use with the code
 release of [DeSCI](https://github.com/liuyang12/DeSCI).
 
 These files need to be placed in the repository from the official release of
-DeSCI to be
-used:
+DeSCI to be used:
+
 `test_desci_custom.m`: A script modified from the repository that allowed
 injection of our own files. Just change the `datapath` variable and run.
 
@@ -93,3 +92,9 @@ Contains an end to end model replicating the work of [DL-CACTI](https://pubs.aip
 Code is complete, needed training for multiple compression ratio pairs, which is
 expensive, and it wasn't mentioned in the report.
 
+## Documents
+
+- This [document](admm-lr-plus-sparse/admm-lr-plus-sparse.pdf) formulates the
+  reconstruction problem, applies ADMM to solve it, and details each step.
+- `admm-lr-plus-sparse-old/` and `z-admm-nolonger-relevant/` contain
+  formulations that were not used in the project.
