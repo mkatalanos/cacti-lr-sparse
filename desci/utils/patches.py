@@ -58,6 +58,9 @@ def extract_sparse_patches(
 
 
 def extract_patches(X: NDArray[np.uint8], patch_size: int) -> NDArray[np.uint8]:
+    """
+    Only used for tests
+    """
     M, N, F = X.shape
     p = patch_size
     P = p * p
@@ -119,6 +122,9 @@ def reconstruct_sparse_patches(
 
 
 def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
+    """
+    Only used for tests
+    """
     p = patch_size
     F, M, N = shape
     P, L = X_tilde.shape
@@ -148,6 +154,8 @@ def reconstruct_from_patches(X_tilde, patch_size, shape: Tuple[int, int, int]):
 
     return X_rec
 
+
+# Old experimental section needs updating to FMN to be used again
 
 def find_similar(patch: NDArray, patches: NDArray, M: int = 20):
     # Euclidean distance
