@@ -43,6 +43,13 @@ options:
   -s STRIDE_RATIO, --stride_ratio STRIDE_RATIO
 ```
 
+
+For example: 
+
+```bash
+python automation.py 1 10 50 50 -b 0.5 -f 4 -i 500
+```
+
 `lr_sparse_admm.py`: Contains the implementation of ADMM and the entire
 algorithm.
 
