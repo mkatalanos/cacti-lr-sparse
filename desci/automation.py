@@ -56,7 +56,6 @@ if __name__ == "__main__":
     # x, _, _ = load_mat("./datasets/kobe32_cacti.mat")
     # x = x[:frames]
     # name = "KOBE"
-    # block = 0.5
     # mask = generate_mask(x.shape, block)
     # y = phi(x, mask)
 
@@ -90,8 +89,7 @@ if __name__ == "__main__":
 
     print(f"{PSNR=:.2f},{SSIM=:.2f},{duration=:.2f}")
 
-    out_title = f"out/{name}_F_{frames}_b{block:.2f}_l0_{lambda_0:.2f}_l1_{lambda_1:.2f}_l2_{
-        lambda_2:.2f}_l3_{lambda_3:.2f}_r_{rho:.2f}_it_{MAX_IT}"
+    out_title = f"out/{name}_F_{frames}_b{block:.2f}_l0_{lambda_0:.2f}_l1_{lambda_1:.2f}_l2_{lambda_2:.2f}_l3_{lambda_3:.2f}_r_{rho:.2f}_it_{MAX_IT}_p_{patch_size}_s_{stride_ratio}"
 
     columns = ["|Y-H(X)|", "|U|_1", "|L|_*", "|V|_*",
                "|S-U|", "|S-V|", "|X-B-V|", "primal", "dual"]

@@ -82,6 +82,7 @@ def t_svt(Y, tau):
     return D_tau_Y
 
 
+@njit(cache=True, fastmath=True)
 def update_L_tsvd(
     B, Delta, rho, lambda_2, mask,
 ):
@@ -94,7 +95,7 @@ def update_L_tsvd(
 
     L = t_svt(La, lambda_2/rho)
 
-    return L
+    return np.ascontiguousarray(L)
 
 
 @njit(cache=True, fastmath=True)
@@ -227,6 +228,7 @@ def ADMM(
             X = update_X(Y, B, V, Lambda, mask, rho, lambda_0)
             S = update_S(U, V, Theta, Gamma, rho)
             L = update_L(B, Delta, rho, lambda_2, mask)
+            # L = update_L_tsvd(B, Delta, rho, lambda_2, mask)
             # Wait here if parallelizing
 
             # Can be done in parallel
