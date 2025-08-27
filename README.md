@@ -14,7 +14,7 @@ foreground, such that
 
 The codebase is structured as follows:
 
-## Folder: Desci
+## Folder: lr-sparse
 
 In this folder there exists the main implementation of this project.
 
@@ -98,6 +98,8 @@ Contains an end to end model replicating the work of [DL-CACTI](https://pubs.aip
 
 Code is complete, needed training for multiple compression ratio pairs, which is
 expensive, and it wasn't mentioned in the report.
+
+Dataset is a subset of [CASIA Action Recognition Database](http://www.cbsr.ia.ac.cn/english/Action%20Databases%20EN.asp) preprocessed by [SPHAR](https://github.com/AlexanderMelde/SPHAR-Dataset).
 
 ## Documents
 
